@@ -48,4 +48,7 @@ CTestTestfile.cmake
 
 !lib/*
 
+# Mac Specifics
+*.DS_Store
+
 
