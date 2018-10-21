@@ -4,10 +4,16 @@ project(LeapMotion)
 
 include_directories(include/)
 
-link_directories(./lib/)
+find_library(LIBLEAP_PATH Leap lib/)
+
+IF(NOT LIBLEAP_PATH)
+
+MESSAGE(FATAL_ERROR "libleap not found")
+
+ENDIF(NOT LIBLEAP_PATH)
 
 aux_source_directory(src/ DIR_SRCS)
 
 add_executable(LeapMotion ${DIR_SRCS})
 
-target_link_libraries(LeapMotion Leap)
+target_link_libraries(LeapMotion ${LIBLEAP_PATH})
