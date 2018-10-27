@@ -56,6 +56,7 @@ void SampleListener::onExit(const Controller& controller) {
 void SampleListener::onFrame(const Controller& controller) {
   // Get the most recent frame and report some basic information
   const Frame frame = controller.frame();
+  if (frame.fingers().extended().count() != 1) return; // Only track one extended finger
   std::cout << "Frame id: " << frame.id()
             << ", timestamp: " << frame.timestamp()
             << ", hands: " << frame.hands().count()
@@ -81,22 +82,28 @@ void SampleListener::onFrame(const Controller& controller) {
 
     // Get the Arm bone
     Arm arm = hand.arm();
-    std::cout << std::string(2, ' ') <<  "Arm direction: " << arm.direction()
-              << " wrist position: " << arm.wristPosition()
-              << " elbow position: " << arm.elbowPosition() << std::endl;
+    std::cout << std::string(2, ' ') <<  "Arm direction: " << arm.direction() << std::endl
+              << std::string(2, ' ') << "wrist position: " << arm.wristPosition() << std::endl
+              << std::string(2, ' ') << "elbow position: " << arm.elbowPosition() << std::endl;
 
     // Get fingers
     const FingerList fingers = hand.fingers();
     for (FingerList::const_iterator fl = fingers.begin(); fl != fingers.end(); ++fl) {
       const Finger finger = *fl;
+      if (finger.type() != 1) continue; // TODO: Only track index finger.
       std::cout << std::string(4, ' ') <<  fingerNames[finger.type()]
                 << " finger, id: " << finger.id()
                 << ", length: " << finger.length()
-                << "mm, width: " << finger.width() << std::endl;
+                << "mm, width: " << finger.width() << std::endl
+                << std::string(6, ' ') << "mm, tipPosition: " << finger.tipPosition() << std::endl
+                << std::string(6, ' ') << "mm, tipVelocity: " << finger.tipVelocity() << std::endl;
+
+
 
       // Get finger bones
       for (int b = 0; b < 4; ++b) {
         Bone::Type boneType = static_cast<Bone::Type>(b);
+        if (boneType != 3) continue; // TODO: The tip of the finger, though we probably don't need to
         Bone bone = finger.bone(boneType);
         std::cout << std::string(6, ' ') <<  boneNames[boneType]
                   << " bone, start: " << bone.prevJoint()
