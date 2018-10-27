@@ -10,6 +10,9 @@
 #include <cstring>
 #include "Leap.h"
 
+#define TAP_THRESHOLD 300.0;
+bool TAP_SESSION[10];
+
 using namespace Leap;
 
 class SampleListener : public Listener {
@@ -42,6 +45,12 @@ void SampleListener::onConnect(const Controller& controller) {
   controller.enableGesture(Gesture::TYPE_KEY_TAP);
   controller.enableGesture(Gesture::TYPE_SCREEN_TAP);
   controller.enableGesture(Gesture::TYPE_SWIPE);
+
+  // config velocity
+  controller.config().setFloat("Gesture.KeyTap.MinDownVelocity", 40.0);
+  controller.config().setFloat("Gesture.KeyTap.HistorySeconds", .2);
+  controller.config().setFloat("Gesture.KeyTap.MinDistance", 8.0);
+  controller.config().save();
 }
 
 void SampleListener::onDisconnect(const Controller& controller) {
@@ -56,19 +65,62 @@ void SampleListener::onExit(const Controller& controller) {
 void SampleListener::onFrame(const Controller& controller) {
   // Get the most recent frame and report some basic information
   const Frame frame = controller.frame();
-  if (frame.fingers().extended().count() != 1) return; // Only track one extended finger
+
+  // if (frame.fingers().extended().count() != 1) return; // Only track one extended finger
 
   HandList hands = frame.hands();
   for (HandList::const_iterator hl = hands.begin(); hl != hands.end(); ++hl) {
 
     const Hand hand = *hl;
+
+
     const FingerList fingers = hand.fingers();
     for (FingerList::const_iterator fl = fingers.begin(); fl != fingers.end(); ++fl) {
       const Finger finger = *fl;
       if (finger.type() != 1) continue; // TODO: Only track index finger.
 
-      std::cout << "Index finger, tipVelocity: " << finger.tipVelocity()
-        << " mm, tipPosition: " << finger.tipPosition() << std::endl;
+      // std::cout << "Index finger, tipVelocity: " << finger.tipVelocity()
+      //   << " mm, tipPosition: " << finger.tipPosition() << std::endl;
+
+        // if (finger.tipVelocity().down())
+
+        // std::cout << "Index finger, y_Velocity: " << finger.tipVelocity()[1] << std::endl;
+
+        int tap_session_offset = hand.isLeft() ? 5 : 0;
+        // this tap session allow
+        if (finger.tipVelocity()[1] < -150.0) {
+          if (!TAP_SESSION[0+tap_session_offset]) {
+            // std::cout << "YES TAP " << finger.tipVelocity()[1]
+            // << " " << finger.tipPosition() << std::endl;
+            if (finger.tipPosition()[0] < -180) {
+              std::cout << "a" << std::endl;
+            } else if (finger.tipPosition()[0] < -140) {
+              std::cout << "s" << std::endl;
+            } else if (finger.tipPosition()[0] < -100) {
+              std::cout << "d" << std::endl;
+            } else if (finger.tipPosition()[0] < -60) {
+              std::cout << "f" << std::endl;
+            } else if (finger.tipPosition()[0] < -20) {
+              std::cout << "g" << std::endl;
+            } else if (finger.tipPosition()[0] < 20) {
+              std::cout << "h" << std::endl;
+            } else if (finger.tipPosition()[0] < 60) {
+              std::cout << "j" << std::endl;
+            } else if (finger.tipPosition()[0] < 100) {
+              std::cout << "k" << std::endl;
+            } else if (finger.tipPosition()[0] < 140) {
+              std::cout << "l" << std::endl;
+            } else if (finger.tipPosition()[0] < 180) {
+              std::cout << ";" << std::endl;
+            } else {
+              std::cout << "'" << std::endl;
+            }
+            TAP_SESSION[0+tap_session_offset] = true;
+          }
+        } else {
+          if (TAP_SESSION[0+tap_session_offset]) TAP_SESSION[0+tap_session_offset] = false;
+          // std::cout << "NO  TAP " << finger.tipVelocity()[1] << std::endl;
+        }
 
 
       // std::cout << std::string(4, ' ') <<  fingerNames[finger.type()]
