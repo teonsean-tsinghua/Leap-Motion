@@ -62,6 +62,13 @@ void SampleListener::onExit(const Controller& controller) {
   std::cout << "Exited" << std::endl;
 }
 
+bool tap_session_in_progress() {
+  for (int x=0; x<10; x++) {
+    if (TAP_SESSION[x]) return true;
+  }
+  return false;
+}
+
 void SampleListener::onFrame(const Controller& controller) {
   // Get the most recent frame and report some basic information
   const Frame frame = controller.frame();
@@ -77,7 +84,7 @@ void SampleListener::onFrame(const Controller& controller) {
     const FingerList fingers = hand.fingers();
     for (FingerList::const_iterator fl = fingers.begin(); fl != fingers.end(); ++fl) {
       const Finger finger = *fl;
-      if (finger.type() != 1) continue; // TODO: Only track index finger.
+      // if (finger.type() != 1) continue; // TODO: Only track index finger.
 
       // std::cout << "Index finger, tipVelocity: " << finger.tipVelocity()
       //   << " mm, tipPosition: " << finger.tipPosition() << std::endl;
@@ -86,48 +93,54 @@ void SampleListener::onFrame(const Controller& controller) {
 
         // std::cout << "Index finger, y_Velocity: " << finger.tipVelocity()[1] << std::endl;
 
+
         int tap_session_offset = hand.isLeft() ? 5 : 0;
+        tap_session_offset += finger.type();
+        int fingerDownVelocity = finger.tipVelocity()[1];
         // this tap session allow
-        if (finger.tipVelocity()[1] < -150.0) {
-          if (!TAP_SESSION[0+tap_session_offset]) {
-            // std::cout << "YES TAP " << finger.tipVelocity()[1]
-            // << " " << finger.tipPosition() << std::endl;
-            if (finger.tipPosition()[0] < -180) {
-              std::cout << "a" << std::endl;
-            } else if (finger.tipPosition()[0] < -140) {
-              std::cout << "s" << std::endl;
-            } else if (finger.tipPosition()[0] < -100) {
-              std::cout << "d" << std::endl;
-            } else if (finger.tipPosition()[0] < -60) {
-              std::cout << "f" << std::endl;
-            } else if (finger.tipPosition()[0] < -20) {
-              std::cout << "g" << std::endl;
-            } else if (finger.tipPosition()[0] < 20) {
-              std::cout << "h" << std::endl;
-            } else if (finger.tipPosition()[0] < 60) {
-              std::cout << "j" << std::endl;
-            } else if (finger.tipPosition()[0] < 100) {
-              std::cout << "k" << std::endl;
-            } else if (finger.tipPosition()[0] < 140) {
-              std::cout << "l" << std::endl;
-            } else if (finger.tipPosition()[0] < 180) {
-              std::cout << ";" << std::endl;
+        if (fingerDownVelocity < -150.0) {
+          if (!tap_session_in_progress()) {
+
+            int finger_x_position = finger.tipPosition()[0];
+            std::string letter;
+
+            if (finger.type() == 0) {
+              std::cout << "' ' " << fingerNames[finger.type()] << " Velocity: " << fingerDownVelocity << std::endl;
             } else {
-              std::cout << "'" << std::endl;
+              if (finger_x_position < -90) {
+                letter = "a";
+              } else if (finger_x_position < -70) {
+                letter = "s";
+              } else if (finger_x_position < -50) {
+                letter = "d";
+              } else if (finger_x_position < -30) {
+                letter = "f";
+              } else if (finger_x_position < -10) {
+                letter = "g";
+              } else if (finger_x_position < 10) {
+                letter = "h";
+              } else if (finger_x_position < 30) {
+                letter = "j";
+              } else if (finger_x_position < 50) {
+                letter = "k";
+              } else if (finger_x_position < 70) {
+                letter = "l";
+              } else if (finger_x_position < 90) {
+                letter = ";";
+              } else {
+                letter = "'";
+              }
+
+              std::cout << letter << " " << fingerNames[finger.type()] << " Velocity: " << fingerDownVelocity << std::endl;
             }
-            TAP_SESSION[0+tap_session_offset] = true;
+
+            TAP_SESSION[tap_session_offset] = true;
           }
         } else {
-          if (TAP_SESSION[0+tap_session_offset]) TAP_SESSION[0+tap_session_offset] = false;
-          // std::cout << "NO  TAP " << finger.tipVelocity()[1] << std::endl;
+          if (TAP_SESSION[tap_session_offset]) {
+            TAP_SESSION[tap_session_offset] = false;
+          }
         }
-
-
-      // std::cout << std::string(4, ' ') <<  fingerNames[finger.type()]
-      //           << " finger, id: " << finger.id() << std::endl
-      //           << std::string(6, ' ') << "mm, tipPosition: " << finger.tipPosition() << std::endl
-      //           << std::string(6, ' ') << "mm, tipVelocity: " << finger.tipVelocity() << std::endl;
-
     }
   }
 }
