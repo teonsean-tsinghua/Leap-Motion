@@ -84,15 +84,6 @@ void SampleListener::onFrame(const Controller& controller) {
     const FingerList fingers = hand.fingers();
     for (FingerList::const_iterator fl = fingers.begin(); fl != fingers.end(); ++fl) {
       const Finger finger = *fl;
-      // if (finger.type() != 1) continue; // TODO: Only track index finger.
-
-      // std::cout << "Index finger, tipVelocity: " << finger.tipVelocity()
-      //   << " mm, tipPosition: " << finger.tipPosition() << std::endl;
-
-        // if (finger.tipVelocity().down())
-
-        // std::cout << "Index finger, y_Velocity: " << finger.tipVelocity()[1] << std::endl;
-
 
         int tap_session_offset = hand.isLeft() ? 5 : 0;
         tap_session_offset += finger.type();
