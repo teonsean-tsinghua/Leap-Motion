@@ -11,7 +11,7 @@
 #include "Leap.h"
 
 #define TAP_THRESHOLD 300.0;
-bool TAP_SESSION[10];
+bool FINGER_LOCK[10];
 
 using namespace Leap;
 
@@ -62,9 +62,9 @@ void SampleListener::onExit(const Controller& controller) {
   std::cout << "Exited" << std::endl;
 }
 
-bool tap_session_in_progress() {
+bool is_finger_locked() {
   for (int x=0; x<10; x++) {
-    if (TAP_SESSION[x]) return true;
+    if (FINGER_LOCK[x]) return true;
   }
   return false;
 }
@@ -80,17 +80,19 @@ void SampleListener::onFrame(const Controller& controller) {
 
     const Hand hand = *hl;
 
-
     const FingerList fingers = hand.fingers();
     for (FingerList::const_iterator fl = fingers.begin(); fl != fingers.end(); ++fl) {
       const Finger finger = *fl;
 
-        int tap_session_offset = hand.isLeft() ? 5 : 0;
-        tap_session_offset += finger.type();
+        // allow hand to determine offset value
+        int finger_lock_offset = hand.isLeft() ? 5 : 0;
+        finger_lock_offset += finger.type();
         int fingerDownVelocity = finger.tipVelocity()[1];
-        // this tap session allow
+        // if the downward velocity exceeds 150
         if (fingerDownVelocity < -150.0) {
-          if (!tap_session_in_progress()) {
+
+          // and if the we haven't locked in on a finger
+          if (!is_finger_locked()) {
 
             int finger_x_position = finger.tipPosition()[0];
             std::string letter;
@@ -125,11 +127,13 @@ void SampleListener::onFrame(const Controller& controller) {
               std::cout << letter << " " << fingerNames[finger.type()] << " Velocity: " << fingerDownVelocity << std::endl;
             }
 
-            TAP_SESSION[tap_session_offset] = true;
+            // lock the finger
+            FINGER_LOCK[finger_lock_offset] = true;
           }
-        } else {
-          if (TAP_SESSION[tap_session_offset]) {
-            TAP_SESSION[tap_session_offset] = false;
+        } else { // else if the downwards velocity is less than 150, then and
+          // we have our locked finger, then we release the lock
+          if (FINGER_LOCK[finger_lock_offset]) {
+            FINGER_LOCK[finger_lock_offset] = false;
           }
         }
     }
