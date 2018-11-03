@@ -48,4 +48,4 @@ CTestTestfile.cmake
 
 !lib/*
 
-
+googletest-*
