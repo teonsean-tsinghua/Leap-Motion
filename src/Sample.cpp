@@ -12,11 +12,19 @@
 #include <string>
 #include "Leap.h"
 
-#define TRIGGER_THRESHOLD 220.0
+#define TRIGGER_THRESHOLD 190.0
 
 float TRIGGER_THRESHOLDS[10] = {
-  260.0, TRIGGER_THRESHOLD, TRIGGER_THRESHOLD, TRIGGER_THRESHOLD, TRIGGER_THRESHOLD,
-  260.0, TRIGGER_THRESHOLD, TRIGGER_THRESHOLD, TRIGGER_THRESHOLD, TRIGGER_THRESHOLD
+  /* Left  Thumb */ 260.0,
+  /* Left  Index */ TRIGGER_THRESHOLD,
+  /* Left  Middl */ TRIGGER_THRESHOLD,
+  /* Left  Ring  */ TRIGGER_THRESHOLD,
+  /* Left  Pinky */ 200.0,
+  /* Right Thumb */ 260.0,
+  /* Right Index */ TRIGGER_THRESHOLD,
+  /* Right Middl */ TRIGGER_THRESHOLD,
+  /* Right Ring  */ TRIGGER_THRESHOLD,
+  /* Right Pinky */ TRIGGER_THRESHOLD
 };
 
 int FINGER_LOCKED = -1;
@@ -138,8 +146,8 @@ void print_finger_velocities() {
     has_print = -1;
   }
 }
-void update_sequence(int finger_type, int finger_triggered) {
-  if (finger_type == 0) { // is thumb.
+void update_sequence(int finger_triggered) {
+  if (finger_triggered%5 == 0) { // is thumb.
     std::cout << "PRINT: ";
     for (std::vector<int>::const_iterator i = sequence.begin(); i != sequence.end(); ++i)
       std::cout << *i;
@@ -197,61 +205,74 @@ void SampleListener::onFrame(const Controller& controller) {
 
   HandList hands = frame.hands();
   for (HandList::const_iterator hl = hands.begin(); hl != hands.end(); ++hl) {
-
     const Hand hand = *hl;
-
     const FingerList fingers = hand.fingers();
     for (FingerList::const_iterator fl = fingers.begin(); fl != fingers.end(); ++fl) {
+
       const Finger finger = *fl;
+      // allow hand to determine offset value
+      int fingerTriggerOffset = hand.isLeft() ? 5 : 0;
+      fingerTriggerOffset += finger.type();
 
-        // allow hand to determine offset value
-        int fingerTriggerOffset = hand.isLeft() ? 5 : 0;
-        fingerTriggerOffset += finger.type();
+      // separate thumb/fingers
+      int fingerTriggerSpeed = -finger.tipVelocity()[1]; // finger trigger speed
+      if (finger.type() == 0) { // thumb trigger speed
+        int x_speed = hand.isLeft() ? -finger.tipVelocity()[0] : finger.tipVelocity()[0];
+        x_speed = std::max(x_speed, 0);
+        int y_speed = -finger.tipVelocity()[1];
+        y_speed = std::max(y_speed, 0);
+        fingerTriggerSpeed = std::sqrt(x_speed*x_speed + y_speed*y_speed);
+      }
 
-        // separate thumb/fingers
-        int fingerTriggerSpeed = -finger.tipVelocity()[1]; // finger trigger speed
-        if (finger.type() == 0) { // thumb trigger speed
-          int x_speed = hand.isLeft() ? -finger.tipVelocity()[0] : finger.tipVelocity()[0];
-          x_speed = std::max(x_speed, 0);
-          int y_speed = -finger.tipVelocity()[1];
-          y_speed = std::max(y_speed, 0);
-          fingerTriggerSpeed = std::sqrt(x_speed*x_speed + y_speed*y_speed);
-        }
 
-        if (FINGER_LOCKED == -1) {
-          FINGER_DOWNWARD_VELOCITIES[fingerTriggerOffset] = fingerTriggerSpeed;
-        }
+      FINGER_DOWNWARD_VELOCITIES[fingerTriggerOffset] = fingerTriggerSpeed;
 
-        // if the downward velocity exceeds 150
-        // and if the we haven't locked in on a finger
-        if (fingerTriggerSpeed > TRIGGER_THRESHOLDS[fingerTriggerOffset] && FINGER_LOCKED == -1) {
-
-            // std::string letter = get_letter_from_offset(fingerTriggerOffset);
-
-            // lock the finger
-            FINGER_LOCKED = fingerTriggerOffset;
-            has_print = fingerTriggerOffset;
-
-            // Check is thumb to trigger next word
-            update_sequence(finger.type(), fingerTriggerOffset);
-
-        } else if (fingerTriggerSpeed > FINGER_DOWNWARD_VELOCITIES[fingerTriggerOffset]
-          && FINGER_LOCKED == fingerTriggerOffset) {
-
-          // if the downwards velocity is greater than the current, and we are
-          // currently examining our locked finger, update the largest
-          // FINGER_DOWNWARD_VELOCITIES[fingerTriggerOffset] = fingerTriggerSpeed;
-          // std::cout << "fingerTriggerSpeed: " << fingerTriggerSpeed << "\n";
-
-        } else if (fingerTriggerSpeed <= TRIGGER_THRESHOLDS[fingerTriggerOffset]
-          && FINGER_LOCKED == fingerTriggerOffset) {
-
-          // if the downwards velocity is less than 150, and we are currently
-          // examining our locked finger, then we release the lock
-          FINGER_LOCKED = -1;
-        }
+      if (fingerTriggerSpeed <= TRIGGER_THRESHOLDS[fingerTriggerOffset]-100
+        && FINGER_LOCKED == fingerTriggerOffset) {
+        // if the downwards velocity is less than 150, and we are currently
+        // examining our locked finger, then we release the lock
+        FINGER_LOCKED = -1;
+      }
     }
   }
+
+  int fingerTriggerSpeed = 0;
+  int fingerTriggerOffset = -1;
+  for (int x=0; x<10; x++) {
+    if (FINGER_DOWNWARD_VELOCITIES[x] > fingerTriggerSpeed) {
+      fingerTriggerSpeed = FINGER_DOWNWARD_VELOCITIES[x];
+      fingerTriggerOffset = x;
+    }
+  }
+
+  // if the downward velocity exceeds 150
+  // and if the we haven't locked in on a finger
+  if (fingerTriggerSpeed > TRIGGER_THRESHOLDS[fingerTriggerOffset] && FINGER_LOCKED == -1) {
+
+      // std::string letter = get_letter_from_offset(fingerTriggerOffset);
+
+      // lock the finger
+      FINGER_LOCKED = fingerTriggerOffset;
+      has_print = fingerTriggerOffset;
+
+      // Check is thumb to trigger next word
+      update_sequence(fingerTriggerOffset);
+
+  } else if (fingerTriggerSpeed > FINGER_DOWNWARD_VELOCITIES[fingerTriggerOffset]
+    && FINGER_LOCKED == fingerTriggerOffset) {
+
+    // if the downwards velocity is greater than the current, and we are
+    // currently examining our locked finger, update the largest
+    // FINGER_DOWNWARD_VELOCITIES[fingerTriggerOffset] = fingerTriggerSpeed;
+    // std::cout << "fingerTriggerSpeed: " << fingerTriggerSpeed << "\n";
+
+  }
+  // else if (fingerTriggerSpeed <= TRIGGER_THRESHOLDS[fingerTriggerOffset]-100
+  //   && FINGER_LOCKED == fingerTriggerOffset) {
+  //   // if the downwards velocity is less than 150, and we are currently
+  //   // examining our locked finger, then we release the lock
+  //   FINGER_LOCKED = -1;
+  // }
 
   print_finger_velocities();
 }
