@@ -49,3 +49,5 @@ CTestTestfile.cmake
 !lib/*
 
 googletest-*
+# Mac Specifics
+*.DS_Store
