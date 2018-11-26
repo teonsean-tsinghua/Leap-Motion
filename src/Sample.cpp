@@ -9,6 +9,7 @@
 #include <iostream>
 #include <cstring>
 #include "Leap.h"
+#include "converter.h"
 
 using namespace Leap;
 
@@ -216,22 +217,29 @@ void SampleListener::onServiceDisconnect(const Controller& controller) {
 }
 
 int main(int argc, char** argv) {
-  // Create a sample listener and controller
-  SampleListener listener;
-  Controller controller;
+  std::cout << "Initializing converter...\n";
+  Converter converter;
+  std::cout << "Converter initialized.\n";
+  std::vector<std::pair<std::string, double> > re = converter.convert("09");
+  for(auto each: re) {
+    std::cout << each.first << ": " << each.second << std::endl;
+  }
+  // // Create a sample listener and controller
+  // SampleListener listener;
+  // Controller controller;
 
-  // Have the sample listener receive events from the controller
-  controller.addListener(listener);
+  // // Have the sample listener receive events from the controller
+  // controller.addListener(listener);
 
-  if (argc > 1 && strcmp(argv[1], "--bg") == 0)
-    controller.setPolicy(Leap::Controller::POLICY_BACKGROUND_FRAMES);
+  // if (argc > 1 && strcmp(argv[1], "--bg") == 0)
+  //   controller.setPolicy(Leap::Controller::POLICY_BACKGROUND_FRAMES);
 
-  // Keep this process running until Enter is pressed
-  std::cout << "Press Enter to quit..." << std::endl;
-  std::cin.get();
+  // // Keep this process running until Enter is pressed
+  // std::cout << "Press Enter to quit..." << std::endl;
+  // std::cin.get();
 
-  // Remove the sample listener when done
-  controller.removeListener(listener);
+  // // Remove the sample listener when done
+  // controller.removeListener(listener);
 
-  return 0;
+  // return 0;
 }

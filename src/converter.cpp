@@ -3,9 +3,10 @@
 const int Converter::MAXIMUM_CANDIDATE = 64;
 const double Converter::THRESHOLD = 1.0 / 5120;
 
-Converter::Trie::Trie(char ch, bool isWord) {
-    this->ch = ch;
-    this->isWord = isWord;
+Converter::Trie::Trie() {
+    this->ch = '\0';
+    this->prob_as_word = 0;
+    this->isWord = false;
 }
 
 Converter::Trie::~Trie() {
@@ -46,8 +47,47 @@ Converter::~Converter() {
     delete trie_root;
 }
 
+void Converter::build_trie(TiXmlElement* ele, Trie* node) {
+    const char* isWord = ele->Attribute("isWord");
+    const char* prob_as_word = ele->Attribute("prob_as_word");
+    std::stringstream ss;
+    ss << isWord << " " << prob_as_word;
+    ss >> node->isWord >> node->prob_as_word;
+    for(TiXmlElement* child = ele->FirstChildElement(); child != NULL; child = child->NextSiblingElement())
+    {
+        std::string elemName = child->Value();
+        if(elemName.length() != 1) {
+            std::cerr << "XML error: element name is " << elemName << std::endl;
+            exit(1);
+        }
+        const char* prob_s = child->Attribute("prob");
+        std::stringstream ss;
+        ss << prob_s;
+        double prob;
+        ss >> prob;
+        Trie* child_node = new Trie();
+        node->children[elemName[0]] = std::pair<Trie*, double>(child_node, prob);
+        build_trie(child, child_node);
+    }
+}
+
 void Converter::build_trie() {
-    trie_root = new Trie('\0', false);
+    trie_root = new Trie();
+    TiXmlDocument doc;
+    if(!doc.LoadFile("tree.xml"))
+    {
+        std::cerr << doc.ErrorDesc() << std::endl;
+        exit(1);
+    }
+    TiXmlElement* root = doc.FirstChildElement();
+    if(root == NULL)
+    {
+        std::cerr << "Failed to load file: No root element." << std::endl;
+        doc.Clear();
+        exit(1);
+    }
+    build_trie(root, trie_root);
+    doc.Clear();
 }
 
 void Converter::gen_next_candidates(std::string cur, char next) {
@@ -66,6 +106,9 @@ void Converter::gen_next_candidates(std::string cur, char next) {
         max_heap.pop();
     }
     softmax(stash[cur]);
+    // for(auto each: stash[cur]) {
+    //     std::cout << each.str << ": " << each.prob << std::endl;
+    // }
 }
 
 void Converter::softmax(std::vector<Candidate>& cands) {
@@ -91,7 +134,7 @@ void Converter::predict_word(std::string input, std::vector<std::pair<std::strin
         Candidate cand = to_expand.top();
         to_expand.pop();
         if(cand.trie->isWord) {
-            result.push_back(std::pair<std::string, double>(cand.str, cand.prob));
+            result.push_back(std::pair<std::string, double>(cand.str, cand.prob * cand.trie->prob_as_word));
         }
         for(auto it = cand.trie->children.begin(); it != cand.trie->children.end(); it++) {
             double prob = cand.prob * it->second.second;

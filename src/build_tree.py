@@ -1,4 +1,5 @@
-import xml.etree.ElementTree as ET
+from xml.dom.minidom import Document
+import os
 
 class Trie:
     def __init__(self):
@@ -31,9 +32,12 @@ class Trie:
             exit(1)
 
     def toXml(self, node):
-        node.attrib = {'isWord': '1' if self.isWord else '0', 'prob': str(self.prob), 'prob_as_word': str(self.prob_as_word)}
+        node.setAttribute('isWord', '1' if self.isWord else '0')
+        node.setAttribute('prob', str(self.prob))
+        node.setAttribute('prob_as_word', str(self.prob_as_word))
         for k, v in self.children.items():
-            child = ET.SubElement(node, k)
+            child = doc.createElement(k)
+            node.appendChild(child)
             v.toXml(child)
 
 root = Trie()
@@ -55,7 +59,9 @@ with open('lexicon.txt', 'r') as f:
         cur.cnt_as_word += cnt
 root.setProb(root.cnt_total)
 root.validate()
-root_xml = ET.Element('root')
+doc = Document()
+root_xml = doc.createElement('root')
+doc.appendChild(root_xml)
 root.toXml(root_xml)
-tree = ET.ElementTree(root_xml)
-tree.write('tree.xml')
+with open(os.path.join('..', 'tree.xml'),'w',encoding='UTF-8') as fh:
+    doc.writexml(fh, indent='', addindent='\t', newl='\n', encoding='UTF-8')

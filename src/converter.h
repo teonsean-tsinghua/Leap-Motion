@@ -9,7 +9,11 @@
 #include<iostream>
 #include<queue>
 #include<cmath>
-#include"rapidjson/document.h"
+#include<cstdlib>
+#include<cstring>
+#include<sstream>
+#include<ctime>
+#include"tinyxml.h"
 
 class Converter {
 private:
@@ -20,9 +24,10 @@ private:
     public:
         char ch;
         bool isWord;
+        double prob_as_word;
         std::map<char, std::pair<Trie*, double> > children;
 
-        Trie(char ch, bool isWord);
+        Trie();
         ~Trie();
 
     };
@@ -42,6 +47,7 @@ private:
     std::vector<std::vector<char> > finger_area;
 
     void build_trie();
+    void build_trie(TiXmlElement* ele, Trie* node);
     void gen_next_candidates(std::string cur, char next);
     void predict_word(std::string input, std::vector<std::pair<std::string, double> >& result);
     friend bool operator < (const Candidate& a, const Candidate& b);
@@ -54,5 +60,6 @@ public:
 
 };
 
+std::string getTime();
 
 #endif // CONVERTER_H
