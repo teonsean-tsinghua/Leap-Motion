@@ -25,6 +25,11 @@ bool operator < (const Converter::Candidate& a, const Converter::Candidate& b) {
     return a.prob < b .prob;
 }
 
+bool sort_results_ascending (std::pair<std::string, double> i,
+  std::pair<std::string, double> j) {
+    return (i.second > j.second);
+  }
+
 Converter::Converter() {
     // hard coded. can allow user to customize.
     finger_area.push_back(std::vector<char>({'q', 'a', 'z'}));
@@ -180,5 +185,6 @@ std::vector<std::pair<std::string, double> > Converter::convert(std::string sequ
     for(auto& re: ret) {
     	re.second /= sum;
     }
+    std::sort (ret.begin(), ret.end(), sort_results_ascending);
     return ret;
 }
