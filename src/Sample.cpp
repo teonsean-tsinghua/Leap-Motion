@@ -220,7 +220,7 @@ int main(int argc, char** argv) {
   std::cout << "Initializing converter...\n";
   Converter converter;
   std::cout << "Converter initialized.\n";
-  std::vector<std::pair<std::string, double> > re = converter.convert("09");
+  std::vector<std::pair<std::string, double> > re = converter.convert("18");
   for(auto each: re) {
     std::cout << each.first << ": " << each.second << std::endl;
   }

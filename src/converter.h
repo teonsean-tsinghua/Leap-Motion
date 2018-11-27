@@ -52,6 +52,7 @@ private:
     void predict_word(std::string input, std::vector<std::pair<std::string, double> >& result);
     friend bool operator < (const Candidate& a, const Candidate& b);
     void softmax(std::vector<Candidate>& cands);
+	void minmax(std::vector<Candidate>& cands);
 
 public:
     Converter();
