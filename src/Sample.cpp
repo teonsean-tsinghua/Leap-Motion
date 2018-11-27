@@ -24,7 +24,7 @@ float TRIGGER_THRESHOLDS[10] = {
   /* Right Index */ TRIGGER_THRESHOLD,
   /* Right Middl */ TRIGGER_THRESHOLD,
   /* Right Ring  */ TRIGGER_THRESHOLD,
-  /* Right Pinky */ TRIGGER_THRESHOLD
+  /* Right Pinky */ 200.0
 };
 
 int FINGER_LOCKED = -1;
@@ -131,16 +131,6 @@ void print_finger_velocities() {
       }
       std::cout << x << ": " << FINGER_DOWNWARD_VELOCITIES[x] << offset_string << "|";
     }
-
-    // // print thumb
-    // for (int x=0; x<8; x++) {
-    //   int offset = 8;
-    //   if (THUMB_VELO[x] < 0) offset--;
-    //   if (THUMB_VELO[x] <= -10 || THUMB_VELO[x] >= 10) offset--;
-    //   if (THUMB_VELO[x] <= -100 || THUMB_VELO[x] >= 100) offset--;
-    //   if (THUMB_VELO[x] <= -1000 || THUMB_VELO[x] >= 1000) offset--;
-    //   std::cout << x << ": " << THUMB_VELO[x] << std::string(offset, ' ') << "|";
-    // }
 
     std::cout << "\n";
     has_print = -1;
