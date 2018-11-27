@@ -48,6 +48,10 @@ CTestTestfile.cmake
 
 !lib/*
 
-# Bill Specifics
+googletest-*
+
+*.xml
+
+# Mac Specifics
 *.DS_Store
 make.sh
