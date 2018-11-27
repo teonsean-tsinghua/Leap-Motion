@@ -105,10 +105,28 @@ void Converter::gen_next_candidates(std::string cur, char next) {
         stash[cur].push_back(max_heap.top());
         max_heap.pop();
     }
-    softmax(stash[cur]);
-    // for(auto each: stash[cur]) {
-    //     std::cout << each.str << ": " << each.prob << std::endl;
-    // }
+//    softmax(stash[cur]);
+    minmax(stash[cur]);
+//    std::cout << "candidate for " << cur << std::endl;
+//    for(auto each: stash[cur]) {
+//        std::cout << each.str << ": " << each.prob << std::endl;
+//    }
+//    std::cout << std::endl;
+}
+
+void Converter::minmax(std::vector<Candidate>& cands) {
+    double min = 1, max = 0;
+    for(auto& cand: cands) {
+    	if(cand.prob > max) {
+	    max = cand.prob;
+	}
+	if(cand.prob < min) {
+	    min = cand.prob;
+	}
+    }
+    for(auto& cand: cands) {
+    	cand.prob = (cand.prob - min) / (max - min);
+    }
 }
 
 void Converter::softmax(std::vector<Candidate>& cands) {
@@ -155,5 +173,12 @@ std::vector<std::pair<std::string, double> > Converter::convert(std::string sequ
         cur += ch;
     }
     predict_word(cur, ret);
+    double sum = 0;
+    for(auto& re: ret) {
+    	sum += re.second;
+    }
+    for(auto& re: ret) {
+    	re.second /= sum;
+    }
     return ret;
 }
