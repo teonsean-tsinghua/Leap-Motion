@@ -28,10 +28,16 @@ float TRIGGER_THRESHOLDS[10] = {
   /* Right Pinky */ 200.0
 };
 
+int LIMIT_RESULT = 20;
 int FINGER_LOCKED = -1;
 int FINGER_DOWNWARD_VELOCITIES[10];
 int has_print = -1;
 bool has_leapmotion_connected = false;
+bool is_autocomplete_on = true;
+bool has_started = false;
+
+// Converter
+Converter converter;
 
 // Registered trigger inputs
 std::vector<int> sequence;
@@ -138,12 +144,32 @@ void print_finger_velocities() {
     has_print = -1;
   }
 }
+void print_results(std::string input_string) {
+  std::vector<std::pair<std::string, double> > re = converter.convert(input_string);
+  int count = 0;
+  for(auto each: re) {
+    if (is_autocomplete_on) 
+    if (count++ > LIMIT_RESULT) return;
+
+    std::cout << each.first << ": " << each.second << std::endl;
+  }
+}
+void print_help() {
+  std::cout << "SAMPLE COMMANDS:" << std::endl <<
+               "<HELP>" << std::endl <<
+               "<LIMIT 20>" << std::endl <<
+               "<AUTOCOMPLETE>" << std::endl <<
+               "<QUIT>" << std::endl;
+}
+
 void update_sequence(int finger_triggered) {
   if (finger_triggered%5 == 0) { // is thumb.
-    std::cout << "PRINT: ";
-    for (std::vector<int>::const_iterator i = sequence.begin(); i != sequence.end(); ++i)
-      std::cout << *i;
-    std::cout << "-----";
+    std::cout << "RESULTS: ";
+    std::string sequence_string;
+    for (int i = 0; i < sequence.size(); i++) {
+      sequence_string += std::to_string(sequence[i]);
+    }
+    print_results(sequence_string);
     sequence.clear();
   } else {
     sequence.push_back(finger_triggered);
@@ -162,11 +188,6 @@ std::string get_letter_from_offset(int offset) {
     default: return "      ";
   }
 }
-
-bool sort_vector (std::pair<std::string, double> i,
-  std::pair<std::string, double> j) {
-    return (i.second > j.second);
-  }
 
 void SampleListener::onInit(const Controller& controller) {
   std::cout << "Initialized" << std::endl;
@@ -277,6 +298,7 @@ void SampleListener::onFrame(const Controller& controller) {
 
 void SampleListener::onFocusGained(const Controller& controller) {
   std::cout << "Focus Gained" << std::endl;
+  has_started = true;
 }
 void SampleListener::onFocusLost(const Controller& controller) {
   std::cout << "Focus Lost" << std::endl;
@@ -299,9 +321,8 @@ void SampleListener::onServiceDisconnect(const Controller& controller) {
 
 int main(int argc, char** argv) {
   std::cout << "Initializing converter...\n";
-  Converter converter;
   std::cout << "Converter initialized.\n";
-  std::vector<std::pair<std::string, double> > re = converter.convert("18");
+  std::vector<std::pair<std::string, double> > re = converter.convert("62888");
   for(auto each: re) {
     std::cout << each.first << ": " << each.second << std::endl;
   }
@@ -315,16 +336,33 @@ int main(int argc, char** argv) {
   if (argc > 1 && strcmp(argv[1], "--bg") == 0)
     controller.setPolicy(Leap::Controller::POLICY_BACKGROUND_FRAMES);
 
+  while (!has_started);
+
   // Keep this process running until Enter is pressed
-  // std::cout << "Press Enter to quit..." << std::endl;
+  print_help();
+
   // std::cin.get();
 
-
-  std::cout << "TRIGGER_THRESHOLD is " << TRIGGER_THRESHOLD << "\n";
   int numberInput;
+  std::string user_input;
   while (true) {
-    if (has_leapmotion_connected) {
-      std::cin >> numberInput;
+      std::cin >> user_input;
+      if (user_input == "HELP") {
+        print_help();
+      } else if (user_input == "LIMIT") {
+        int limit;
+        std::cin >> limit;
+        LIMIT_RESULT = limit;
+      } else if (user_input == "AUTOCOMPLETE") {
+        is_autocomplete_on = !is_autocomplete_on;
+      } else if (user_input == "QUIT") {
+        std::cout << "GOODBYE!" << std::endl;
+      } else {
+        std::cout << "INVALID COMMAND" << std::endl;
+        print_help();
+      }
+
+
       if (numberInput == -1) {
         for (int x=0; x<10; x++) {
           std::cout << x << " position threshold: " << TRIGGER_THRESHOLDS[x] << "\n";
@@ -345,17 +383,17 @@ int main(int argc, char** argv) {
       std::cout << "triggerPosition (mod 10): " << triggerPosition << '\n';
       std::cout << "threshold: " << threshold << '\n';
       TRIGGER_THRESHOLDS[triggerPosition] = threshold;
-    } else {
-      std::cout << "Press type in inputs:" << std::endl;
-      std::string stringInput;
-      std::cin >> stringInput;
-      std::vector<std::pair<std::string, double>> re = converter.convert(stringInput);
-      std::sort (re.begin(), re.end(), sort_vector);
-      for(auto each: re) {
-        // if (each.first.length() != stringInput.length()) continue;
-        std::cout << each.first << ": " << each.second << std::endl;
-      }
-    }
+    // }
+    // else {
+    //   std::cout << "Press type in inputs:" << std::endl;
+    //   std::string stringInput;
+    //   std::cin >> stringInput;
+    //   std::vector<std::pair<std::string, double>> re = converter.convert(stringInput);
+    //   for(auto each: re) {
+    //     // if (each.first.length() != stringInput.length()) continue;
+    //     std::cout << each.first << ": " << each.second << std::endl;
+    //   }
+    // }
   }
 
   // // Remove the sample listener when done

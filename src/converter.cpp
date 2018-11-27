@@ -32,16 +32,16 @@ bool sort_results_ascending (std::pair<std::string, double> i,
 
 Converter::Converter() {
     // hard coded. can allow user to customize.
-    finger_area.push_back(std::vector<char>({'q', 'a', 'z'}));
-    finger_area.push_back(std::vector<char>({'q', 'a', 'z', 'w', 's', 'x'}));
-    finger_area.push_back(std::vector<char>({'e', 'd', 'c'}));
-    finger_area.push_back(std::vector<char>({'r', 'f', 'v', 't', 'g', 'b'}));
-    finger_area.push_back(std::vector<char>());
-    finger_area.push_back(std::vector<char>());
-    finger_area.push_back(std::vector<char>({'y', 'h', 'n', 'u', 'j', 'm'}));
-    finger_area.push_back(std::vector<char>({'i', 'k', 'o', 'l'}));
-    finger_area.push_back(std::vector<char>({'o', 'l', 'p'}));
-    finger_area.push_back(std::vector<char>({'p'}));
+    finger_area.push_back(std::vector<char>()); // 0
+    finger_area.push_back(std::vector<char>({'y', 'h', 'n', 'u', 'j', 'm'})); // 1
+    finger_area.push_back(std::vector<char>({'i', 'k', 'o', 'l'})); // 2
+    finger_area.push_back(std::vector<char>({'o', 'l', 'p'})); // 3
+    finger_area.push_back(std::vector<char>({'p'})); // 4
+    finger_area.push_back(std::vector<char>()); // 5
+    finger_area.push_back(std::vector<char>({'r', 'f', 'v', 't', 'g', 'b'})); // 6
+    finger_area.push_back(std::vector<char>({'e', 'd', 'c'})); // 7
+    finger_area.push_back(std::vector<char>({'q', 'a', 'z', 'w', 's', 'x'})); // 8
+    finger_area.push_back(std::vector<char>({'q', 'a', 'z'})); // 9
 
     build_trie();
 
