@@ -163,6 +163,11 @@ std::string get_letter_from_offset(int offset) {
   }
 }
 
+bool sort_vector (std::pair<std::string, double> i,
+  std::pair<std::string, double> j) {
+    return (i.second > j.second);
+  }
+
 void SampleListener::onInit(const Controller& controller) {
   std::cout << "Initialized" << std::endl;
   // load_lexicon();
@@ -344,9 +349,10 @@ int main(int argc, char** argv) {
       std::cout << "Press type in inputs:" << std::endl;
       std::string stringInput;
       std::cin >> stringInput;
-      std::vector<std::pair<std::string, double> > re = converter.convert(stringInput);
+      std::vector<std::pair<std::string, double>> re = converter.convert(stringInput);
+      std::sort (re.begin(), re.end(), sort_vector);
       for(auto each: re) {
-        if (each.first.length() != stringInput.length()) continue;
+        // if (each.first.length() != stringInput.length()) continue;
         std::cout << each.first << ": " << each.second << std::endl;
       }
     }
