@@ -27,16 +27,16 @@ bool operator < (const Converter::Candidate& a, const Converter::Candidate& b) {
 
 Converter::Converter() {
     // hard coded. can allow user to customize.
-    finger_area.push_back(std::vector<char>({'q', 'a', 'z', 'w', 's', 'x'}));
-    finger_area.push_back(std::vector<char>({'q', 'a', 'z', 'w', 's', 'x', 'e', 'd', 'c'}));
-    finger_area.push_back(std::vector<char>({'q', 'a', 'z', 'w', 's', 'x', 'e', 'd', 'c', 'r', 'f', 'v'}));
-    finger_area.push_back(std::vector<char>({'w', 's', 'x', 'e', 'd', 'c', 'r', 'f', 'v', 't', 'g', 'b'}));
+    finger_area.push_back(std::vector<char>({'q', 'a', 'z'}));
+    finger_area.push_back(std::vector<char>({'w', 's', 'x'}));
+    finger_area.push_back(std::vector<char>({'e', 'd', 'c'}));
+    finger_area.push_back(std::vector<char>({'r', 'f', 'v', 't', 'g', 'b'}));
     finger_area.push_back(std::vector<char>());
     finger_area.push_back(std::vector<char>());
-    finger_area.push_back(std::vector<char>({'y', 'g', 'v', 'u', 'h', 'b', 'i', 'j', 'n', 'o', 'k', 'm'}));
-    finger_area.push_back(std::vector<char>({'u', 'h', 'b', 'i', 'j', 'n', 'o', 'k', 'm', 'p', 'l'}));
-    finger_area.push_back(std::vector<char>({'i', 'j', 'n', 'o', 'k', 'm', 'p', 'l'}));
-    finger_area.push_back(std::vector<char>({'o', 'k', 'm', 'p', 'l'}));
+    finger_area.push_back(std::vector<char>({'y', 'h', 'n', 'u', 'j', 'm'}));
+    finger_area.push_back(std::vector<char>({'i', 'k'}));
+    finger_area.push_back(std::vector<char>({'o', 'l'}));
+    finger_area.push_back(std::vector<char>({'p'}));
 
     build_trie();
 

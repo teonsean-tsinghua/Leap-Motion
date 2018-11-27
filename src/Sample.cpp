@@ -31,6 +31,7 @@ float TRIGGER_THRESHOLDS[10] = {
 int FINGER_LOCKED = -1;
 int FINGER_DOWNWARD_VELOCITIES[10];
 int has_print = -1;
+bool has_leapmotion_connected = false;
 
 // Registered trigger inputs
 std::vector<int> sequence;
@@ -179,6 +180,7 @@ void SampleListener::onConnect(const Controller& controller) {
   controller.config().setFloat("Gesture.KeyTap.HistorySeconds", .2);
   controller.config().setFloat("Gesture.KeyTap.MinDistance", 8.0);
   controller.config().save();
+  has_leapmotion_connected = true;
 }
 
 void SampleListener::onDisconnect(const Controller& controller) {
@@ -298,44 +300,56 @@ int main(int argc, char** argv) {
   for(auto each: re) {
     std::cout << each.first << ": " << each.second << std::endl;
   }
-  // // Create a sample listener and controller
-  // SampleListener listener;
-  // Controller controller;
+  // Create a sample listener and controller
+  SampleListener listener;
+  Controller controller;
 
-  // // Have the sample listener receive events from the controller
-  // controller.addListener(listener);
+  // Have the sample listener receive events from the controller
+  controller.addListener(listener);
 
-  // if (argc > 1 && strcmp(argv[1], "--bg") == 0)
-  //   controller.setPolicy(Leap::Controller::POLICY_BACKGROUND_FRAMES);
+  if (argc > 1 && strcmp(argv[1], "--bg") == 0)
+    controller.setPolicy(Leap::Controller::POLICY_BACKGROUND_FRAMES);
 
   // Keep this process running until Enter is pressed
   // std::cout << "Press Enter to quit..." << std::endl;
   // std::cin.get();
 
+
   std::cout << "TRIGGER_THRESHOLD is " << TRIGGER_THRESHOLD << "\n";
   int numberInput;
   while (true) {
-    std::cin >> numberInput;
-    if (numberInput == -1) {
-      for (int x=0; x<10; x++) {
-        std::cout << x << " position threshold: " << TRIGGER_THRESHOLDS[x] << "\n";
+    if (has_leapmotion_connected) {
+      std::cin >> numberInput;
+      if (numberInput == -1) {
+        for (int x=0; x<10; x++) {
+          std::cout << x << " position threshold: " << TRIGGER_THRESHOLDS[x] << "\n";
+        }
+        continue;
       }
-      continue;
-    }
-    int triggerPosition = numberInput%10;
-    std::cout << "Press Enter threshold:" << std::endl;
-    std::cin >> numberInput;
-    if (numberInput == -1) {
-      for (int x=0; x<10; x++) {
-        std::cout << x << " position threshold: " << TRIGGER_THRESHOLDS[x] << "\n";
+      int triggerPosition = numberInput%10;
+      std::cout << "Press Enter threshold:" << std::endl;
+      std::cin >> numberInput;
+      if (numberInput == -1) {
+        for (int x=0; x<10; x++) {
+          std::cout << x << " position threshold: " << TRIGGER_THRESHOLDS[x] << "\n";
+        }
+        continue;
       }
-      continue;
-    }
-    int threshold = numberInput;
+      int threshold = numberInput;
 
-    std::cout << "triggerPosition (mod 10): " << triggerPosition << '\n';
-    std::cout << "threshold: " << threshold << '\n';
-    TRIGGER_THRESHOLDS[triggerPosition] = threshold;
+      std::cout << "triggerPosition (mod 10): " << triggerPosition << '\n';
+      std::cout << "threshold: " << threshold << '\n';
+      TRIGGER_THRESHOLDS[triggerPosition] = threshold;
+    } else {
+      std::cout << "Press type in inputs:" << std::endl;
+      std::string stringInput;
+      std::cin >> stringInput;
+      std::vector<std::pair<std::string, double> > re = converter.convert(stringInput);
+      for(auto each: re) {
+        if (each.first.length() != stringInput.length()) continue;
+        std::cout << each.first << ": " << each.second << std::endl;
+      }
+    }
   }
 
   // // Remove the sample listener when done
