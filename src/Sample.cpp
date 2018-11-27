@@ -31,10 +31,15 @@ float TRIGGER_THRESHOLDS[10] = {
 int LIMIT_RESULT = 20;
 int FINGER_LOCKED = -1;
 int FINGER_DOWNWARD_VELOCITIES[10];
+int thumb_position = 0;
 int has_print = -1;
 bool has_leapmotion_connected = false;
-bool is_autocomplete_on = true;
+bool show_longer_words = true;
+bool is_autocomplete_on = false;
 bool has_started = false;
+bool show = true;
+std::string current_word;
+std::string sentence;
 
 // Converter
 Converter converter;
@@ -120,59 +125,95 @@ void print_finger_velocities() {
       if (FINGER_DOWNWARD_VELOCITIES[x] >= 10) offset--;
       if (FINGER_DOWNWARD_VELOCITIES[x] >= 100) offset--;
       if (FINGER_DOWNWARD_VELOCITIES[x] >= 1000) offset--;
-      std::string offset_string = std::string(offset, ' ');
-      if (has_print == x) {
-        offset_string = std::string(offset, '*');
+      if (show) {
+        std::string offset_string = std::string(offset, ' ');
+        if (has_print == x) {
+          offset_string = std::string(offset, '*');
+        }
+        std::cout << x << ": " << FINGER_DOWNWARD_VELOCITIES[x] << offset_string << "|";
       }
-      std::cout << x << ": " << FINGER_DOWNWARD_VELOCITIES[x] << offset_string << "|";
     }
-    std::cout << "||";
+    if (show) std::cout << "||";
     for (int x=0; x<=4; x++) {
       int offset = 5;
       if (FINGER_DOWNWARD_VELOCITIES[x] <= 0) FINGER_DOWNWARD_VELOCITIES[x] = 0;
       if (FINGER_DOWNWARD_VELOCITIES[x] >= 10) offset--;
       if (FINGER_DOWNWARD_VELOCITIES[x] >= 100) offset--;
       if (FINGER_DOWNWARD_VELOCITIES[x] >= 1000) offset--;
-      std::string offset_string = std::string(offset, ' ');
-      if (has_print == x) {
-        offset_string = std::string(offset, '*');
+      if (show) {
+        std::string offset_string = std::string(offset, ' ');
+        if (has_print == x) {
+          offset_string = std::string(offset, '*');
+        }
+        std::cout << x << ": " << FINGER_DOWNWARD_VELOCITIES[x] << offset_string << "|";
       }
-      std::cout << x << ": " << FINGER_DOWNWARD_VELOCITIES[x] << offset_string << "|";
     }
 
     std::cout << "\n";
     has_print = -1;
   }
 }
-void print_results(std::string input_string) {
+void print_results() {
+  std::string input_string;
+  for (int i = 0; i < sequence.size(); i++) {
+    input_string += std::to_string(sequence[i]);
+  }
+
   std::vector<std::pair<std::string, double> > re = converter.convert(input_string);
   int count = 0;
+  int list_length = (LIMIT_RESULT < re.size() ? LIMIT_RESULT : re.size()) +1;
+  if (thumb_position < 0) thumb_position += list_length;
+  if (re.size() == 0) {
+    std::cout << "(no results)" << std::endl;
+    return;
+  }
   for(auto each: re) {
-    if (is_autocomplete_on) 
-    if (count++ > LIMIT_RESULT) return;
+    if (!show_longer_words && each.first.length() != input_string.length()) {
+      continue;
+    }
+    if (count >= LIMIT_RESULT) break;
+    if ((thumb_position-1) % list_length == count++) {
+      std::cout << ">";
+      current_word = each.first;
+    }
 
     std::cout << each.first << ": " << each.second << std::endl;
   }
+  if (thumb_position == 0 || thumb_position == list_length) {
+    std::cout << ">";
+    current_word = "";
+  }
+  std::cout << "DEL" << std::endl;
 }
 void print_help() {
   std::cout << "SAMPLE COMMANDS:" << std::endl <<
                "<HELP>" << std::endl <<
                "<LIMIT 20>" << std::endl <<
                "<AUTOCOMPLETE>" << std::endl <<
+               "<SHOW_LONGER>" << std::endl <<
+               "<PRINT>" << std::endl <<
                "<QUIT>" << std::endl;
 }
 
 void update_sequence(int finger_triggered) {
   if (finger_triggered%5 == 0) { // is thumb.
-    std::cout << "RESULTS: ";
-    std::string sequence_string;
-    for (int i = 0; i < sequence.size(); i++) {
-      sequence_string += std::to_string(sequence[i]);
-    }
-    print_results(sequence_string);
-    sequence.clear();
+    std::cout << "RESULTS:" << std::endl;
+    if (finger_triggered == 0) thumb_position++;
+    if (finger_triggered == 5) thumb_position--;
+    print_results();
+    std::cout << std::endl;
   } else {
+    if (thumb_position > 0) {
+      sequence.clear();
+      thumb_position = 0;
+      if (current_word != "") {
+        sentence += current_word + " ";
+      }
+      current_word = "";
+      std::cout << "CURRENT SENTENCE: " << sentence << std::endl;
+    }
     sequence.push_back(finger_triggered);
+    if (is_autocomplete_on) print_results();
   }
 }
 std::string get_letter_from_offset(int offset) {
@@ -353,8 +394,21 @@ int main(int argc, char** argv) {
         int limit;
         std::cin >> limit;
         LIMIT_RESULT = limit;
+        std::cout << "DISPLAYING ONLY " << limit << " RESULTS" << std::endl;
       } else if (user_input == "AUTOCOMPLETE") {
         is_autocomplete_on = !is_autocomplete_on;
+        std::string on_off = is_autocomplete_on == 0 ? "ON" : "OFF";
+        std::cout << "AUTOCOMPLETE " << on_off << std::endl;
+      } else if (user_input == "PRINT") {
+        std::cout << "PRINTING CURRENT SENTENCE: " << sentence << std::endl;
+      } else if (user_input == "SHOW_LONGER") {
+        show_longer_words = !show_longer_words;
+        std::string on_off = show_longer_words == 0 ? "ON" : "OFF";
+        std::cout << "SHOWING LONGER WORDS" << on_off << std::endl;
+      } else if (user_input == "SHOW") {
+        show = !show;
+        std::string on_off = show == 0 ? "ON" : "OFF";
+        std::cout << "SHOW TRIGGER DETAILS " << on_off << std::endl;
       } else if (user_input == "QUIT") {
         std::cout << "GOODBYE!" << std::endl;
       } else {
@@ -363,26 +417,26 @@ int main(int argc, char** argv) {
       }
 
 
-      if (numberInput == -1) {
-        for (int x=0; x<10; x++) {
-          std::cout << x << " position threshold: " << TRIGGER_THRESHOLDS[x] << "\n";
-        }
-        continue;
-      }
-      int triggerPosition = numberInput%10;
-      std::cout << "Press Enter threshold:" << std::endl;
-      std::cin >> numberInput;
-      if (numberInput == -1) {
-        for (int x=0; x<10; x++) {
-          std::cout << x << " position threshold: " << TRIGGER_THRESHOLDS[x] << "\n";
-        }
-        continue;
-      }
-      int threshold = numberInput;
-
-      std::cout << "triggerPosition (mod 10): " << triggerPosition << '\n';
-      std::cout << "threshold: " << threshold << '\n';
-      TRIGGER_THRESHOLDS[triggerPosition] = threshold;
+      // if (numberInput == -1) {
+      //   for (int x=0; x<10; x++) {
+      //     std::cout << x << " position threshold: " << TRIGGER_THRESHOLDS[x] << "\n";
+      //   }
+      //   continue;
+      // }
+      // int triggerPosition = numberInput%10;
+      // std::cout << "Press Enter threshold:" << std::endl;
+      // std::cin >> numberInput;
+      // if (numberInput == -1) {
+      //   for (int x=0; x<10; x++) {
+      //     std::cout << x << " position threshold: " << TRIGGER_THRESHOLDS[x] << "\n";
+      //   }
+      //   continue;
+      // }
+      // int threshold = numberInput;
+      //
+      // std::cout << "triggerPosition (mod 10): " << triggerPosition << '\n';
+      // std::cout << "threshold: " << threshold << '\n';
+      // TRIGGER_THRESHOLDS[triggerPosition] = threshold;
     // }
     // else {
     //   std::cout << "Press type in inputs:" << std::endl;
