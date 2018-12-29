@@ -40,15 +40,15 @@ bool has_started = false;
 bool show = true;
 std::string current_word;
 std::string sentence;
+// Registered trigger inputs
+std::vector<int> sequence;
 
 // Converter
 Converter converter;
 
-// Registered trigger inputs
-std::vector<int> sequence;
+enum InputState { BASE, LIMIT, MOCK_INPUT };
 
 using namespace Leap;
-
 class SampleListener : public Listener {
   public:
     virtual void onInit(const Controller&);
@@ -64,59 +64,58 @@ class SampleListener : public Listener {
 
   private:
 };
+void SampleListener::onInit(const Controller& controller) {
+  std::cout << "Initialized" << std::endl;
+}
+void SampleListener::onConnect(const Controller& controller) {
+  std::cout << "Connected" << std::endl;
+  controller.enableGesture(Gesture::TYPE_CIRCLE);
+  controller.enableGesture(Gesture::TYPE_KEY_TAP);
+  controller.enableGesture(Gesture::TYPE_SCREEN_TAP);
+  controller.enableGesture(Gesture::TYPE_SWIPE);
 
-const std::string fingerNames[] = {"Thumb", "Index", "Middle", "Ring", "Pinky"};
-const std::string boneNames[] = {"Metacarpal", "Proximal", "Middle", "Distal"};
-const std::string stateNames[] = {"STATE_INVALID", "STATE_START", "STATE_UPDATE", "STATE_END"};
+  // config velocity
+  controller.config().setFloat("Gesture.KeyTap.MinDownVelocity", 40.0);
+  controller.config().setFloat("Gesture.KeyTap.HistorySeconds", .2);
+  controller.config().setFloat("Gesture.KeyTap.MinDistance", 8.0);
+  controller.config().save();
+  has_leapmotion_connected = true;
+}
+void SampleListener::onDisconnect(const Controller& controller) {
+  // Note: not dispatched when running in a debugger.
+  std::cout << "Disconnected" << std::endl;
+}
+void SampleListener::onExit(const Controller& controller) {
+  std::cout << "Exited" << std::endl;
+}
+void SampleListener::onFocusLost(const Controller& controller) {
+  std::cout << "Focus Lost" << std::endl;
+}
+void SampleListener::onDeviceChange(const Controller& controller) {
+  std::cout << "Device Changed" << std::endl;
+  const DeviceList devices = controller.devices();
 
-// Helper classes
-class WordFrequency {
-  public:
-    std::string word;
-    int freq;
-
-    WordFrequency(std::string w, int f) {
-      word = w;
-      freq = f;
-    }
-};
-class WordTreeNode {
-  public:
-    std::string currentPos;
-    std::vector<WordFrequency> wordFreqs;
-    WordTreeNode *child_9;
-    WordTreeNode *child_8;
-    WordTreeNode *child_7;
-    WordTreeNode *child_6;
-    WordTreeNode *child_1;
-    WordTreeNode *child_2;
-    WordTreeNode *child_3;
-    WordTreeNode *child_4;
-};
+  for (int i = 0; i < devices.count(); ++i) {
+    std::cout << "id: " << devices[i].toString() << std::endl;
+    std::cout << "  isStreaming: " << (devices[i].isStreaming() ? "true" : "false") << std::endl;
+  }
+}
+void SampleListener::onServiceConnect(const Controller& controller) {
+  std::cout << "Service Connected" << std::endl;
+}
+void SampleListener::onServiceDisconnect(const Controller& controller) {
+  std::cout << "Service Disconnected" << std::endl;
+}
 
 // Helper functions
-void load_lexicon() {
-  std::string line;
-  std::ifstream myfile (".//lexicon.txt");
-  WordTreeNode root;
-
-  if (myfile.is_open()) {
-    while (getline(myfile,line)) {
-      std::cout << line << '\n';
-      size_t space_pos = line.find(' ');
-      std::string word = line.substr(0, space_pos);
-      int freq = stoi(line.substr(space_pos));
-      std::cout << "word " << word << '\n';
-      std::cout << "freq " << freq << '\n';
-
-      WordFrequency wordFreq = WordFrequency(word, freq);
-      exit(0);
-
-    }
-    myfile.close();
-  }
-  else std::cout << "Unable to open file";
+// Check if input string is a value number
+bool is_number(const std::string& s) {
+  std::string::const_iterator it = s.begin();
+  while (it != s.end() && std::isdigit(*it)) ++it;
+  return !s.empty() && it == s.end();
 }
+
+// print
 void print_finger_velocities() {
   if (has_print != -1 && FINGER_LOCKED != -1) {
     for (int x=9; x>=5; x--) {
@@ -188,17 +187,19 @@ void print_results() {
 void print_help() {
   std::cout << "SAMPLE COMMANDS:" << std::endl <<
                "<HELP>" << std::endl <<
-               "<LIMIT 20>" << std::endl <<
+               "<LIMIT " << LIMIT_RESULT << ">" << std::endl <<
                "<AUTOCOMPLETE>" << std::endl <<
                "<SHOW_LONGER>" << std::endl <<
+               "<CLEAR>" << std::endl <<
                "<PRINT>" << std::endl <<
                "<QUIT>" << std::endl;
 }
 
+// After keystroke is registered, detect the appropriate action for the word.
 void update_sequence(int finger_triggered) {
-  if (finger_triggered%5 == 0) { // is thumb.
+  if (finger_triggered%5 == 0) { // is thumb
     std::cout << "RESULTS:" << std::endl;
-    if (finger_triggered == 0) thumb_position++;
+    if (finger_triggered == 0) thumb_position += 4;
     if (finger_triggered == 5) thumb_position--;
     print_results();
     std::cout << std::endl;
@@ -216,47 +217,74 @@ void update_sequence(int finger_triggered) {
     if (is_autocomplete_on) print_results();
   }
 }
-std::string get_letter_from_offset(int offset) {
-  switch (offset) {
-    case 9: return "qaz   ";
-    case 8: return "wsx   ";
-    case 7: return "edc   ";
-    case 6: return "rfvtgb";
-    case 1: return "yhnujm";
-    case 2: return "ik    ";
-    case 3: return "ol    ";
-    case 4: return "p     ";
-    default: return "      ";
+
+// run command line functions
+void command_line_interface() {
+  int numberInput;
+  std::string user_input;
+  InputState input_state = BASE;
+  while (true) {
+    if (input_state == BASE) {
+        std::cin >> user_input;
+      if (user_input == "HELP") {
+        print_help();
+      } else if (user_input == "LIMIT") {
+        input_state = LIMIT;
+      } else if (user_input == "AUTOCOMPLETE") {
+        is_autocomplete_on = !is_autocomplete_on;
+        std::string on_off = is_autocomplete_on == 0 ? "ON" : "OFF";
+        std::cout << "AUTOCOMPLETE " << on_off << std::endl;
+      } else if (user_input == "PRINT") {
+        std::cout << "PRINTING CURRENT SENTENCE: " << sentence << std::endl;
+      } else if (user_input == "CLEAR") {
+        std::cout << "CURRENT SENTENCE CLEARED" << std::endl;
+        sentence = "";
+      } else if (user_input == "SHOW_LONGER") {
+        show_longer_words = !show_longer_words;
+        std::string on_off = show_longer_words == 0 ? "ON" : "OFF";
+        std::cout << "SHOWING LONGER WORDS " << on_off << std::endl;
+      } else if (user_input == "SHOW") {
+        show = !show;
+        std::string on_off = show == 0 ? "ON" : "OFF";
+        std::cout << "SHOW TRIGGER DETAILS " << on_off << std::endl;
+      } else if (user_input == "MOCK_INPUT") {
+        input_state = MOCK_INPUT;
+      } else if (user_input == "QUIT") {
+        std::cout << "GOODBYE!" << std::endl;
+        exit(0);
+      } else {
+        std::cout << "INVALID COMMAND: " << user_input << std::endl;
+        std::cout << "<HELP> to see valid commands" << std::endl;
+      }
+    } else if (input_state == LIMIT) {
+      std::string limit;
+      std::cin >> limit;
+      if (!is_number(limit) || std::atoi(limit.c_str()) <= 0) {
+        std::cout << "Please enter positive for limit. You entered: "
+          << limit << std::endl;
+      } else {
+        LIMIT_RESULT = std::atoi(limit.c_str());
+        std::cout << "DISPLAYING ONLY " << limit << " RESULTS" << std::endl;
+        input_state = BASE;
+      }
+    } else if (input_state == MOCK_INPUT) {
+      std::string mock_input;
+      std::cin >> mock_input;
+      if (!is_number(mock_input) || std::atoi(mock_input.c_str()) <= 0) {
+        std::cout << "Please enter positive number for mock. You entered: "
+          << mock_input << std::endl;
+      } else {
+        std::vector<std::pair<std::string, double>> re = converter.convert(mock_input);
+        for(auto each: re) {
+          std::cout << each.first << ": " << each.second << std::endl;
+        }
+        input_state = BASE;
+      }
+    }
   }
 }
 
-void SampleListener::onInit(const Controller& controller) {
-  std::cout << "Initialized" << std::endl;
-  // load_lexicon();
-}
-
-void SampleListener::onConnect(const Controller& controller) {
-  std::cout << "Connected" << std::endl;
-  controller.enableGesture(Gesture::TYPE_CIRCLE);
-  controller.enableGesture(Gesture::TYPE_KEY_TAP);
-  controller.enableGesture(Gesture::TYPE_SCREEN_TAP);
-  controller.enableGesture(Gesture::TYPE_SWIPE);
-
-  // config velocity
-  controller.config().setFloat("Gesture.KeyTap.MinDownVelocity", 40.0);
-  controller.config().setFloat("Gesture.KeyTap.HistorySeconds", .2);
-  controller.config().setFloat("Gesture.KeyTap.MinDistance", 8.0);
-  controller.config().save();
-  has_leapmotion_connected = true;
-}
-
-void SampleListener::onDisconnect(const Controller& controller) {
-  // Note: not dispatched when running in a debugger.
-  std::cout << "Disconnected" << std::endl;
-}
-void SampleListener::onExit(const Controller& controller) {
-  std::cout << "Exited" << std::endl;
-}
+// Most of the code start here
 void SampleListener::onFrame(const Controller& controller) {
   // return;
 
@@ -336,122 +364,32 @@ void SampleListener::onFrame(const Controller& controller) {
 
   print_finger_velocities();
 }
-
 void SampleListener::onFocusGained(const Controller& controller) {
   std::cout << "Focus Gained" << std::endl;
   has_started = true;
 }
-void SampleListener::onFocusLost(const Controller& controller) {
-  std::cout << "Focus Lost" << std::endl;
-}
-void SampleListener::onDeviceChange(const Controller& controller) {
-  std::cout << "Device Changed" << std::endl;
-  const DeviceList devices = controller.devices();
-
-  for (int i = 0; i < devices.count(); ++i) {
-    std::cout << "id: " << devices[i].toString() << std::endl;
-    std::cout << "  isStreaming: " << (devices[i].isStreaming() ? "true" : "false") << std::endl;
-  }
-}
-void SampleListener::onServiceConnect(const Controller& controller) {
-  std::cout << "Service Connected" << std::endl;
-}
-void SampleListener::onServiceDisconnect(const Controller& controller) {
-  std::cout << "Service Disconnected" << std::endl;
-}
 
 int main(int argc, char** argv) {
-  std::cout << "Initializing converter...\n";
   std::cout << "Converter initialized.\n";
+
+  // Quick sanity check
   std::vector<std::pair<std::string, double> > re = converter.convert("62888");
   for(auto each: re) {
     std::cout << each.first << ": " << each.second << std::endl;
   }
+
   // Create a sample listener and controller
   SampleListener listener;
   Controller controller;
-
-  // Have the sample listener receive events from the controller
   controller.addListener(listener);
-
   if (argc > 1 && strcmp(argv[1], "--bg") == 0)
     controller.setPolicy(Leap::Controller::POLICY_BACKGROUND_FRAMES);
 
-  while (!has_started);
-
-  // Keep this process running until Enter is pressed
   print_help();
+  command_line_interface();
 
-  // std::cin.get();
+  // Remove the sample listener when done
+  controller.removeListener(listener);
 
-  int numberInput;
-  std::string user_input;
-  while (true) {
-      std::cin >> user_input;
-      if (user_input == "HELP") {
-        print_help();
-      } else if (user_input == "LIMIT") {
-        int limit;
-        std::cin >> limit;
-        LIMIT_RESULT = limit;
-        std::cout << "DISPLAYING ONLY " << limit << " RESULTS" << std::endl;
-      } else if (user_input == "AUTOCOMPLETE") {
-        is_autocomplete_on = !is_autocomplete_on;
-        std::string on_off = is_autocomplete_on == 0 ? "ON" : "OFF";
-        std::cout << "AUTOCOMPLETE " << on_off << std::endl;
-      } else if (user_input == "PRINT") {
-        std::cout << "PRINTING CURRENT SENTENCE: " << sentence << std::endl;
-      } else if (user_input == "SHOW_LONGER") {
-        show_longer_words = !show_longer_words;
-        std::string on_off = show_longer_words == 0 ? "ON" : "OFF";
-        std::cout << "SHOWING LONGER WORDS" << on_off << std::endl;
-      } else if (user_input == "SHOW") {
-        show = !show;
-        std::string on_off = show == 0 ? "ON" : "OFF";
-        std::cout << "SHOW TRIGGER DETAILS " << on_off << std::endl;
-      } else if (user_input == "QUIT") {
-        std::cout << "GOODBYE!" << std::endl;
-      } else {
-        std::cout << "INVALID COMMAND" << std::endl;
-        print_help();
-      }
-
-
-      // if (numberInput == -1) {
-      //   for (int x=0; x<10; x++) {
-      //     std::cout << x << " position threshold: " << TRIGGER_THRESHOLDS[x] << "\n";
-      //   }
-      //   continue;
-      // }
-      // int triggerPosition = numberInput%10;
-      // std::cout << "Press Enter threshold:" << std::endl;
-      // std::cin >> numberInput;
-      // if (numberInput == -1) {
-      //   for (int x=0; x<10; x++) {
-      //     std::cout << x << " position threshold: " << TRIGGER_THRESHOLDS[x] << "\n";
-      //   }
-      //   continue;
-      // }
-      // int threshold = numberInput;
-      //
-      // std::cout << "triggerPosition (mod 10): " << triggerPosition << '\n';
-      // std::cout << "threshold: " << threshold << '\n';
-      // TRIGGER_THRESHOLDS[triggerPosition] = threshold;
-    // }
-    // else {
-    //   std::cout << "Press type in inputs:" << std::endl;
-    //   std::string stringInput;
-    //   std::cin >> stringInput;
-    //   std::vector<std::pair<std::string, double>> re = converter.convert(stringInput);
-    //   for(auto each: re) {
-    //     // if (each.first.length() != stringInput.length()) continue;
-    //     std::cout << each.first << ": " << each.second << std::endl;
-    //   }
-    // }
-  }
-
-  // // Remove the sample listener when done
-  // controller.removeListener(listener);
-
-  // return 0;
+  return 0;
 }
