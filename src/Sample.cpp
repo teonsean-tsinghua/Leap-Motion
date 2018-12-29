@@ -30,11 +30,9 @@ float TRIGGER_THRESHOLDS[10] = {
 
 int LIMIT_RESULT = 20;
 int FINGER_LOCKED = -1;
-int FINGER_DOWNWARD_VELOCITIES[10];
-int thumb_position = 0;
-int has_print = -1;
-bool has_leapmotion_connected = false;
-bool show_longer_words = true;
+int FINGER_TRIGGER_SPEEDS[10];
+int wordSelectionPosition = 0;
+int hasPrint = -1;
 bool is_autocomplete_on = false;
 bool has_started = false;
 bool show = true;
@@ -79,7 +77,6 @@ void SampleListener::onConnect(const Controller& controller) {
   controller.config().setFloat("Gesture.KeyTap.HistorySeconds", .2);
   controller.config().setFloat("Gesture.KeyTap.MinDistance", 8.0);
   controller.config().save();
-  has_leapmotion_connected = true;
 }
 void SampleListener::onDisconnect(const Controller& controller) {
   // Note: not dispatched when running in a debugger.
@@ -117,39 +114,39 @@ bool is_number(const std::string& s) {
 
 // print
 void print_finger_velocities() {
-  if (has_print != -1 && FINGER_LOCKED != -1) {
+  if (hasPrint != -1 && FINGER_LOCKED != -1) {
     for (int x=9; x>=5; x--) {
       int offset = 5;
-      if (FINGER_DOWNWARD_VELOCITIES[x] <= 0) FINGER_DOWNWARD_VELOCITIES[x] = 0;
-      if (FINGER_DOWNWARD_VELOCITIES[x] >= 10) offset--;
-      if (FINGER_DOWNWARD_VELOCITIES[x] >= 100) offset--;
-      if (FINGER_DOWNWARD_VELOCITIES[x] >= 1000) offset--;
+      if (FINGER_TRIGGER_SPEEDS[x] <= 0) FINGER_TRIGGER_SPEEDS[x] = 0;
+      if (FINGER_TRIGGER_SPEEDS[x] >= 10) offset--;
+      if (FINGER_TRIGGER_SPEEDS[x] >= 100) offset--;
+      if (FINGER_TRIGGER_SPEEDS[x] >= 1000) offset--;
       if (show) {
         std::string offset_string = std::string(offset, ' ');
-        if (has_print == x) {
+        if (hasPrint == x) {
           offset_string = std::string(offset, '*');
         }
-        std::cout << x << ": " << FINGER_DOWNWARD_VELOCITIES[x] << offset_string << "|";
+        std::cout << x << ": " << FINGER_TRIGGER_SPEEDS[x] << offset_string << "|";
       }
     }
     if (show) std::cout << "||";
     for (int x=0; x<=4; x++) {
       int offset = 5;
-      if (FINGER_DOWNWARD_VELOCITIES[x] <= 0) FINGER_DOWNWARD_VELOCITIES[x] = 0;
-      if (FINGER_DOWNWARD_VELOCITIES[x] >= 10) offset--;
-      if (FINGER_DOWNWARD_VELOCITIES[x] >= 100) offset--;
-      if (FINGER_DOWNWARD_VELOCITIES[x] >= 1000) offset--;
+      if (FINGER_TRIGGER_SPEEDS[x] <= 0) FINGER_TRIGGER_SPEEDS[x] = 0;
+      if (FINGER_TRIGGER_SPEEDS[x] >= 10) offset--;
+      if (FINGER_TRIGGER_SPEEDS[x] >= 100) offset--;
+      if (FINGER_TRIGGER_SPEEDS[x] >= 1000) offset--;
       if (show) {
         std::string offset_string = std::string(offset, ' ');
-        if (has_print == x) {
+        if (hasPrint == x) {
           offset_string = std::string(offset, '*');
         }
-        std::cout << x << ": " << FINGER_DOWNWARD_VELOCITIES[x] << offset_string << "|";
+        std::cout << x << ": " << FINGER_TRIGGER_SPEEDS[x] << offset_string << "|";
       }
     }
 
     std::cout << "\n";
-    has_print = -1;
+    hasPrint = -1;
   }
 }
 void print_results() {
@@ -161,24 +158,24 @@ void print_results() {
   std::vector<std::pair<std::string, double> > re = converter.convert(input_string);
   int count = 0;
   int list_length = (LIMIT_RESULT < re.size() ? LIMIT_RESULT : re.size()) +1;
-  if (thumb_position < 0) thumb_position += list_length;
+  if (wordSelectionPosition < 0) wordSelectionPosition += list_length;
   if (re.size() == 0) {
     std::cout << "(no results)" << std::endl;
     return;
   }
   for(auto each: re) {
-    if (!show_longer_words && each.first.length() != input_string.length()) {
-      continue;
-    }
+    // if (each.first.length() != input_string.length()) {
+    //   continue;
+    // }
     if (count >= LIMIT_RESULT) break;
-    if ((thumb_position-1) % list_length == count++) {
+    if ((wordSelectionPosition-1) % list_length == count++) {
       std::cout << ">";
       current_word = each.first;
     }
 
     std::cout << each.first << ": " << each.second << std::endl;
   }
-  if (thumb_position == 0 || thumb_position == list_length) {
+  if (wordSelectionPosition == 0 || wordSelectionPosition == list_length) {
     std::cout << ">";
     current_word = "";
   }
@@ -195,29 +192,29 @@ void print_help() {
                "<QUIT>" << std::endl;
 }
 
-// After keystroke is registered, detect the appropriate action for the word.
-void update_sequence(int finger_triggered) {
-  if (finger_triggered%5 == 0) { // is thumb
+// After keystroke is registered, trigger the appropriate action
+void trigger_action(int fingerIndex) {
+  if (fingerIndex%5 == 0) { // is thumb
     std::cout << "RESULTS:" << std::endl;
-    if (finger_triggered == 0) thumb_position += 4;
-    if (finger_triggered == 5) thumb_position--;
+    if (fingerIndex == 0) wordSelectionPosition += 4;
+    if (fingerIndex == 5) wordSelectionPosition--;
     print_results();
     std::cout << std::endl;
   } else {
-    if (thumb_position > 0) {
+    if (wordSelectionPosition > 0) {
       sequence.clear();
-      thumb_position = 0;
+      wordSelectionPosition = 0;
       if (current_word != "") {
         sentence += current_word + " ";
       }
       current_word = "";
       std::cout << "CURRENT SENTENCE: " << sentence << std::endl;
     }
-    sequence.push_back(finger_triggered);
-    if (is_autocomplete_on) print_results();
+    sequence.push_back(fingerIndex);
+    // if (is_autocomplete_on) 
+    print_results();
   }
 }
-
 // run command line functions
 void command_line_interface() {
   int numberInput;
@@ -239,10 +236,6 @@ void command_line_interface() {
       } else if (user_input == "CLEAR") {
         std::cout << "CURRENT SENTENCE CLEARED" << std::endl;
         sentence = "";
-      } else if (user_input == "SHOW_LONGER") {
-        show_longer_words = !show_longer_words;
-        std::string on_off = show_longer_words == 0 ? "ON" : "OFF";
-        std::cout << "SHOWING LONGER WORDS " << on_off << std::endl;
       } else if (user_input == "SHOW") {
         show = !show;
         std::string on_off = show == 0 ? "ON" : "OFF";
@@ -283,11 +276,34 @@ void command_line_interface() {
     }
   }
 }
-
 // determine finger index
 int get_finger_index(Hand hand, Finger finger) {
   int fingerIndex = hand.isLeft() ? 5 : 0;
   return fingerIndex + finger.type();
+}
+// determine finger's trigger speed
+int get_trigger_speed(Hand hand, Finger finger) {
+  if (finger.type() == 0) { // for thumbs, add horizontal and vertical
+    int x_speed = hand.isLeft() ? -finger.tipVelocity()[0] : finger.tipVelocity()[0];
+    x_speed = std::max(x_speed, 0);
+    int y_speed = -finger.tipVelocity()[1];
+    y_speed = std::max(y_speed, 0);
+    return  std::sqrt(x_speed*x_speed + y_speed*y_speed);
+  } else { // for non-thumbs, add vertical
+    return -finger.tipVelocity()[1];
+  }
+}
+// determine largest trigger speed and index
+int get_largest_trigger_value_index() {
+  int largestTriggerSpeed = 0;
+  int fingerIndex = -1;
+  for (int x=0; x<10; x++) {
+    if (FINGER_TRIGGER_SPEEDS[x] > largestTriggerSpeed) {
+      largestTriggerSpeed = FINGER_TRIGGER_SPEEDS[x];
+      fingerIndex = x;
+    }
+  }
+  return fingerIndex;
 }
 
 // Most of the code start here
@@ -300,73 +316,31 @@ void SampleListener::onFrame(const Controller& controller) {
     const FingerList fingers = hand.fingers();
     for (FingerList::const_iterator fl = fingers.begin(); fl != fingers.end(); ++fl) {
       const Finger finger = *fl;
+
       int fingerIndex = get_finger_index(hand, finger);
+      int triggerSpeed = get_trigger_speed(hand, finger);
 
-      // separate thumb/fingers
-      int triggerSpeed = get_trigger_speed(finger);
+      // update all hand speeds
+      FINGER_TRIGGER_SPEEDS[fingerIndex] = triggerSpeed;
 
-      int get_trigger_speed(Hand hand, Finger finger) {
-        int fingerTriggerSpeed = -finger.tipVelocity()[1]; // finger trigger speed
-        if (finger.type() == 0) { // thumb trigger speed
-          int x_speed = hand.isLeft() ? -finger.tipVelocity()[0] : finger.tipVelocity()[0];
-          x_speed = std::max(x_speed, 0);
-          int y_speed = -finger.tipVelocity()[1];
-          y_speed = std::max(y_speed, 0);
-          fingerTriggerSpeed = std::sqrt(x_speed*x_speed + y_speed*y_speed);
-        }
-        return fingerTriggerSpeed
-      }
-
-
-
-      FINGER_DOWNWARD_VELOCITIES[fingerIndex] = fingerTriggerSpeed;
-
-      if (fingerTriggerSpeed <= TRIGGER_THRESHOLDS[fingerIndex]-100
-        && FINGER_LOCKED == fingerIndex) {
-        // if the downwards velocity is less than 150, and we are currently
-        // examining our locked finger, then we release the lock
-        FINGER_LOCKED = -1;
-      }
+      // if currently locked finger decreases speed:
+      if (FINGER_LOCKED == fingerIndex)
+        if (triggerSpeed <= TRIGGER_THRESHOLDS[fingerIndex]-100)
+          FINGER_LOCKED = -1; // release lock
     }
   }
 
-  int fingerTriggerSpeed = 0;
-  int fingerIndex = -1;
-  for (int x=0; x<10; x++) {
-    if (FINGER_DOWNWARD_VELOCITIES[x] > fingerTriggerSpeed) {
-      fingerTriggerSpeed = FINGER_DOWNWARD_VELOCITIES[x];
-      fingerIndex = x;
-    }
-  }
+  int fingerIndex = get_largest_trigger_value_index();
+  int largestTriggerSpeed = FINGER_TRIGGER_SPEEDS[fingerIndex];
 
-  // if the downward velocity exceeds 150
-  // and if the we haven't locked in on a finger
-  if (fingerTriggerSpeed > TRIGGER_THRESHOLDS[fingerIndex] && FINGER_LOCKED == -1) {
+  // if finger is not locked and one trigger speed is high
+  if (FINGER_LOCKED == -1 &&
+      largestTriggerSpeed > TRIGGER_THRESHOLDS[fingerIndex]) {
 
-      // std::string letter = get_letter_from_offset(fingerIndex);
-
-      // lock the finger
       FINGER_LOCKED = fingerIndex;
-      has_print = fingerIndex;
-
-      // Check is thumb to trigger next word
-      update_sequence(fingerIndex);
-
-  } else if (fingerTriggerSpeed > FINGER_DOWNWARD_VELOCITIES[fingerIndex]
-    && FINGER_LOCKED == fingerIndex) {
-
-    // if the downwards velocity is greater than the current, and we are
-    // currently examining our locked finger, update the largest
-    // FINGER_DOWNWARD_VELOCITIES[fingerIndex] = fingerTriggerSpeed;
-    // std::cout << "fingerTriggerSpeed: " << fingerTriggerSpeed << "\n";
-
+      hasPrint = fingerIndex;
+      trigger_action(fingerIndex);
   }
-  // else if (fingerTriggerSpeed <= TRIGGER_THRESHOLDS[fingerIndex]-100
-  //   && FINGER_LOCKED == fingerIndex) {
-  //   // if the downwards velocity is less than 150, and we are currently
-  //   // examining our locked finger, then we release the lock
-  //   FINGER_LOCKED = -1;
-  // }
 
   print_finger_velocities();
 }
@@ -392,6 +366,9 @@ int main(int argc, char** argv) {
     controller.setPolicy(Leap::Controller::POLICY_BACKGROUND_FRAMES);
 
   print_help();
+  std::cout << "Press Enter to quit..." << std::endl;
+  std::cin.get();
+
   command_line_interface();
 
   // Remove the sample listener when done
