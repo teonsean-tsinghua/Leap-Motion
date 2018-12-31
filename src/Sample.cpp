@@ -8,8 +8,10 @@
 
 #include <iostream>
 #include <cstring>
+#include <unistd.h>
 #include "Leap.h"
 #include "converter.h"
+#include "keyboardui.h"
 
 using namespace Leap;
 
@@ -225,6 +227,10 @@ int main(int argc, char** argv) {
     std::cout << each.first << ": " << each.second << std::endl;
   }
 
+
+  Keyboardui keyboardui = Keyboardui(argc, argv);
+
+  // Use keyboard inputs to test converter
   while (true) {
     std::string user_input;
     std::cin >> user_input;
