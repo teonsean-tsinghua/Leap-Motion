@@ -54,3 +54,7 @@ googletest-*
 
 # Mac Specifics
 *.DS_Store
+
+# For Bill
+_Sample.cpp
+make.sh
