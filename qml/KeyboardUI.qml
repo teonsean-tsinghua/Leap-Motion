@@ -5,22 +5,21 @@ import QtScxml 5.8
 Window {
     id: window
     visible: true
-    width: 560
-    height: 360
+    width: 760
+    height: 420
 
     function myQmlFunction(msg) {
         console.log("KeyboardUI.qml receives", msg)
         return "Message from KeyboardUI.qml saying hi!"
     }
-
     function registerKeystroke(fingerIndex) {
         var qmlIndex = 0;
 
         // map to qt coordinates
         if (fingerIndex%5 == 0) { // thumb
-            arrowButtons.itemAt(fingerIndex/5).pressed = true
+            arrowButtons.itemAt(1-fingerIndex/5).pressed = true
             delay(200, function() {
-                arrowButtons.itemAt(fingerIndex/5).pressed = false
+                arrowButtons.itemAt(1-fingerIndex/5).pressed = false
             })
             return
         } else if (fingerIndex === 1) {
@@ -48,6 +47,23 @@ Window {
 
         return "FingerIndex: " + fingerIndex + " triggered!"
     }
+    function clearWordCandidates() {
+        candidates.model = ["","","","",""];
+    }
+    function setWordCandidates(words, index) {
+        candidates.model = words;
+        highlightCandidate(index)
+    }
+    function highlightCandidate(highlightedIndex){
+        var i;
+        for (i = 0; i < 5; i++)
+            candidates.itemAt(i).pressed = false
+        candidates.itemAt(highlightedIndex).pressed = true
+    }
+    function updateDisplay(msg){
+      resultText.text = msg
+      clearWordCandidates()
+    }
 
     // results area
     Rectangle {
@@ -66,11 +82,10 @@ Window {
             anchors.fill: parent
             horizontalAlignment: Text.AlignRight
             verticalAlignment: Text.AlignVCenter
-            text: "0"
+            text: ""
             color: "white"
-            font.pixelSize: window.height * 3 / 32
+            font.pixelSize: window.height * 2 / 32
             font.family: "Open Sans Regular"
-            fontSizeMode: Text.Fit
         }
     }
 
@@ -102,12 +117,26 @@ Window {
             border.width: 5
             color: "#F5F5F5"
             anchors.topMargin: -5
+            Repeater {
+                id: candidates
+                model: ["temp","","","",""]
+                Button {
+                    x: index * width
+                    width: parent.width/candidates.model.length
+                    height: parent.height - 30
+                    color: pressed ? "#bad1ff" : "#F5F5F5"
+                    border.color: "white"
+                    border.width: 5
+                    text: modelData
+                    fontHeight: 0.4
+                }
+            }
         }
 
         // letterButtons
         Repeater {
             id: letterButtons
-            model: ["Q\nA\nZ", "W\nS\nX", "E\nD\nC", "R  T\nF  G\nV  B", "Y  U\nH  J\nN  M", "I\nK", "O\nL", "P"]
+            model: ["Q\nA\nZ", "W\nS\nX", "E\nD\nC", "R  T\nF  G\nV  B", "Y  U\nH   J\nN  M", "I\nK", "O\nL", "P"]
             Button {
                 x: index <= 3 ? index * (parent.width / 10) :
                    index == 4 ? (index+1) * (parent.width / 10) : (index+2) * (parent.width / 10)
@@ -119,7 +148,6 @@ Window {
                 border.width: 5
                 text: modelData
                 fontHeight: 0.2
-//                onClicked: letterButtons.childAt(0,)
             }
         }
 

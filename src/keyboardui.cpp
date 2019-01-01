@@ -21,11 +21,32 @@ void Keyboardui::init(int argc, char** argv) {
     object = component.create();
     testMethod();
     test_int = 20;
-    std::cout << "test_int set to 20\n";
     app.exec();
 }
 
 void Keyboardui::registerKeystroke(int fingerIndex) {
   QVariant msg = fingerIndex;
   QMetaObject::invokeMethod(object, "registerKeystroke", Q_ARG(QVariant, msg));
+}
+void Keyboardui::updateDisplay(std::string currentSentence) {
+  QVariant msg = QString::fromStdString(currentSentence);
+
+  QMetaObject::invokeMethod(object, "updateDisplay", Q_ARG(QVariant, msg));
+}
+void Keyboardui::clearWordCandidates() {
+  QMetaObject::invokeMethod(object, "clearWordCandidates");
+}
+
+void Keyboardui::setWordCandidates(std::vector<std::string> candidates, int wordSelectionPosition) {
+  int startPosition = wordSelectionPosition/5;
+  QVariantList list;
+  int maxIndex = candidates.size() < 5 ? candidates.size() : 5;
+  for (int x=0; x<maxIndex;x++) {
+    std::string currentCandidate = candidates[x];
+    list << currentCandidate.c_str();
+  }
+
+  QMetaObject::invokeMethod(object, "setWordCandidates",
+    Q_ARG(QVariant, QVariant::fromValue(list)),
+    Q_ARG(QVariant, wordSelectionPosition%5));
 }

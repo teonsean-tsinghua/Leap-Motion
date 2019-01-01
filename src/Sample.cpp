@@ -23,10 +23,10 @@ float TRIGGER_THRESHOLDS[10] = {
 int LIMIT_RESULT = 20;
 int FINGER_LOCKED = -1;             // Lock on triggering finger
 int FINGER_TRIGGER_SPEEDS[10];      // Record downward velocity to determine trigger
-bool inWordSelectionMode = false;       // Triggered by thumb to select word
+bool inWordSelectionMode = false;   // Triggered by thumb to select word
 int wordSelectionPosition = 0;      // Which word is selected on choice right now
 int hasPrintCurrentTrigger = -1;    // After a trigger is detected but before it has printed
-bool isAutocompleteOn = false;
+bool isAutocompleteOn = true;       // Toggle autocomplete of words
 bool print = true;
 std::string currentWord;            // currently selected word
 std::string currentSentence;        // currently constructed sentences
@@ -165,6 +165,8 @@ void printFingerVelocities() {
 // print word choices
 void printSequenceAndWordChoices() {
   // get word candidates from sequence
+
+  // TODO: remove redundant work
   std::string input_string;
   for (int i = 0; i < sequenceOfLetters.size(); i++) {
     input_string += std::to_string(sequenceOfLetters[i]);
@@ -178,10 +180,13 @@ void printSequenceAndWordChoices() {
   int count = 0;
   int list_length = (LIMIT_RESULT < candidates.size() ? LIMIT_RESULT : candidates.size()) +1;
   if (wordSelectionPosition < 0) wordSelectionPosition += list_length;
+
+  std::vector<std::string> candidatesForVisualization;
   for(auto each: candidates) {
-    // if (each.first.length() != input_string.length()) {
-    //   continue;
-    // }
+    candidatesForVisualization.push_back(each.first);
+
+    // TODO: set a more consistent model
+
     if (count >= LIMIT_RESULT) break;
     if (wordSelectionPosition == count++) {
       std::cout << ">";
@@ -194,6 +199,9 @@ void printSequenceAndWordChoices() {
     currentWord = "";
   }
   std::cout << "DEL" << std::endl;
+
+  keyboardui.setWordCandidates(candidatesForVisualization, wordSelectionPosition);
+
 }
 
 // After a keystroke is registered, handle the appropriate trigger
@@ -216,6 +224,7 @@ void handleKeystrokeEvent(int fingerIndex) {
       }
       currentWord = "";
       std::cout << "CURRENT SENTENCE: " << currentSentence << std::endl;
+      keyboardui.updateDisplay(currentSentence);
     }
     sequenceOfLetters.push_back(fingerIndex);
     if (isAutocompleteOn) {
@@ -331,8 +340,8 @@ int main(int argc, char** argv) {
     controller.setPolicy(Leap::Controller::POLICY_BACKGROUND_FRAMES);
 
   // Keep this process running until Enter is pressed
-  std::cout << "Press Enter to quit..." << std::endl;
-  std::cin.get();
+  // std::cout << "Press Enter to quit..." << std::endl;
+  // std::cin.get();
 
   // thread for stdin interface
   std::thread executionThread (executeLeapMotion, argc, argv);

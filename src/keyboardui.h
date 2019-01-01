@@ -6,6 +6,9 @@
 #include <QQmlApplicationEngine>
 #include <QQmlComponent>
 #include <QQmlContext>
+#include <QString>
+#include <QStringList>
+#include <QList>
 #include <QDebug>
 #include <QObject>
 #include <iostream>
@@ -22,6 +25,9 @@ public:
     void init(int argc, char** argv);
     void testMethod();
     void registerKeystroke(int fingerIndex);
+    void clearWordCandidates();
+    void setWordCandidates(std::vector<std::string> candidates, int wordSelectionPosition);
+    void updateDisplay(std::string currentSentence);
     // ~Keyboard();
     // std::vector<std::pair<std::string, double> > convert(std::string sequence);
 
