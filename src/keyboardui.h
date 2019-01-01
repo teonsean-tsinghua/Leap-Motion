@@ -49,7 +49,8 @@ private:
 	// void minmax(std::vector<Candidate>& cands);
 
 public:
-    Keyboardui(int argc, char** argv);
+    Keyboardui();
+    void init(int argc, char** argv);
     // ~Keyboard();
     // std::vector<std::pair<std::string, double> > convert(std::string sequence);
 

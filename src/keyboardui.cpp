@@ -31,16 +31,17 @@
 //   }
 //
 
-Keyboardui::Keyboardui(int argc, char** argv) {
-  QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
-  QGuiApplication app(argc, argv);
-  QQmlApplicationEngine engine;
-  engine.load(QUrl(QStringLiteral("qml/KeyboardUI.qml")));
-  if (engine.rootObjects().isEmpty()) return;
-  QQmlComponent component(&engine, QUrl(QStringLiteral("qml/KeyboardUI.qml")));
-  QObject *object = component.create();
-  app.exec();
+Keyboardui::Keyboardui() {}
 
+void Keyboardui::init(int argc, char** argv) {
+    QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
+    QGuiApplication app(argc, argv);
+    QQmlApplicationEngine engine;
+    engine.load(QUrl(QStringLiteral("qml/KeyboardUI.qml")));
+    if (engine.rootObjects().isEmpty()) return;
+    QQmlComponent component(&engine, QUrl(QStringLiteral("qml/KeyboardUI.qml")));
+    QObject *object = component.create();
+    app.exec();
 }
 
 //
