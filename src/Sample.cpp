@@ -8,8 +8,8 @@
 
 #include <iostream>
 #include <cstring>
-#include <unistd.h>
 #include <thread>
+#include <unistd.h>
 #include "Leap.h"
 #include "converter.h"
 #include "keyboardui.h"
@@ -206,8 +206,8 @@ void printSequenceAndWordChoices() {
   std::cout << "DEL" << std::endl;
 }
 
-// After a keystroke is registered, handle it here
-void handleKeystrokeEvent(int fingerIndex) {
+// After a keystroke is registered, handle the appropriate trigger
+void handleTriggerEvent(int fingerIndex) {
   // Is thumb
   if (fingerIndex%5 == 0) {
     std::cout << "RESULTS:" << std::endl;
@@ -294,19 +294,19 @@ void runStdinInterface() {
 void runKeyboardInputMode(){
   std::cout << "Keyboard Input Mode: \n";
   for (std::string line; std::getline(std::cin, line);) {
-      std::cout << line << std::endl;
-      std::vector<std::pair<std::string, double> > re =
-        converter.convert(line);
-      // std::cout << "Here 3 \n";
-      for(auto each: re) {
-        std::cout << each.first << ": " << each.second << std::endl;
-      }
+    std::cout << line << "\n";
+    std::vector<std::pair<std::string, double> > re = converter.convert("18");
+    // std::cout << "Here 3 \n";
+    for(auto each: re) {
+      std::cout << each.first << ": " << each.second << std::endl;
+    }
+    // std::cout << "Here 4 \n";
   }
 }
 
 // For each frame, determine the velocity of each finger. If a certain finger is
 // not currently locked, and a finger exceeds a threshold, lock that finger,
-// register it as a trigger, and evoke handleKeystrokeEvent() and printFingerVelocities().
+// register it as a trigger, and evoke handleTriggerEvent() and printFingerVelocities().
 void SampleListener::onFrame(const Controller& controller) {
   const Frame frame = controller.frame();
   HandList hands = frame.hands();
@@ -337,15 +337,13 @@ void SampleListener::onFrame(const Controller& controller) {
       largestTriggerSpeed > TRIGGER_THRESHOLDS[fingerIndex]) {
       FINGER_LOCKED = fingerIndex;
       hasPrintCurrentTrigger = fingerIndex;
-      handleKeystrokeEvent(fingerIndex);
+      handleTriggerEvent(fingerIndex);
       printFingerVelocities();
   }
 }
 
 int executeLeapMotion(int argc, char** argv) {
-
-  // Use keyboard inputs to test converter [unimplemented]
-  // runKeyboardInputMode();
+  runKeyboardInputMode(); // blocking
 
   // Leap Motion Code
   SampleListener listener;
@@ -363,18 +361,17 @@ int executeLeapMotion(int argc, char** argv) {
 }
 
 int main(int argc, char** argv) {
-
-  // TODO: read in arguments
-
   std::cout << "Converter initialized.\n";
   testConverter(converter);
+
+  // TODO: read in arguments [unimplemented]
 
   std::thread executionThread (executeLeapMotion, argc, argv);
 
   // Qt UI application. This is blocking.
   std::cout << "Initializing Keyboardui...\n";
-  keyboardui.init(argc, argv);
-
+  // keyboardui.init(argc, argv);
+  while(true);
   executionThread.join();
   return 0;
 }
