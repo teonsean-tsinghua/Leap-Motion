@@ -8,10 +8,12 @@
 
 #include <iostream>
 #include <cstring>
+#include <thread>
 #include "Leap.h"
 #include "converter.h"
 
 using namespace Leap;
+Converter converter;
 
 class SampleListener : public Listener {
   public:
@@ -216,15 +218,7 @@ void SampleListener::onServiceDisconnect(const Controller& controller) {
   std::cout << "Service Disconnected" << std::endl;
 }
 
-int main(int argc, char** argv) {
-  std::cout << "Initializing converter...\n";
-  Converter converter;
-  std::cout << "Converter initialized.\n";
-  std::vector<std::pair<std::string, double> > re = converter.convert("18");
-  for(auto each: re) {
-    std::cout << each.first << ": " << each.second << std::endl;
-  }
-
+void executeConverterThread() {
   while (true) {
     std::string user_input;
     std::cin >> user_input;
@@ -234,6 +228,19 @@ int main(int argc, char** argv) {
       std::cout << each.first << ": " << each.second << std::endl;
     }
   }
+}
+
+int main(int argc, char** argv) {
+  std::cout << "Initializing converter...\n";
+  Converter converter;
+  std::cout << "Converter initialized.\n";
+  std::vector<std::pair<std::string, double> > re = converter.convert("18");
+  for(auto each: re) {
+    std::cout << each.first << ": " << each.second << std::endl;
+  }
+
+  std::thread converterThread(executeConverterThread);
+  converterThread.join();
 
   // // Create a sample listener and controller
   // SampleListener listener;
