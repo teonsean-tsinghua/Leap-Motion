@@ -28,7 +28,7 @@ float TRIGGER_THRESHOLDS[10] = {
   /* Right Pinky */ 200.0
 };
 
-// int LIMIT_RESULT = 20;
+int LIMIT_RESULT = 20;
 int FINGER_LOCKED = -1;             // Lock on triggering finger
 int FINGER_TRIGGER_SPEEDS[10];      // Record downward velocity to determine trigger
 int wordSelectionPosition = 0;      // Which word is selected on choice right now
@@ -137,7 +137,7 @@ int getLargestTriggerValueIndex() {
   return fingerIndex;
 }
 
-/*
+
 // print the velocity of each finger on a trigger event
 void printFingerVelocities() {
   if (print) {
@@ -204,7 +204,7 @@ void printSequenceAndWordChoices() {
   std::cout << "DEL" << std::endl;
 }
 
-
+/*
 // After a keystroke is registered, handle the appropriate trigger
 void handleTriggerEvent(int fingerIndex) {
   // Is thumb
@@ -336,7 +336,7 @@ void SampleListener::onFrame(const Controller& controller) {
       FINGER_LOCKED = fingerIndex;
       hasPrintCurrentTrigger = fingerIndex;
       // handleTriggerEvent(fingerIndex);
-      // printFingerVelocities();
+      printFingerVelocities();
   }
 }
 
