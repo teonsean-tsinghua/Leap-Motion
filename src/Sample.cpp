@@ -221,9 +221,6 @@ void handleKeystrokeEvent(int fingerIndex) {
       std::cout << std::endl;
     }
   }
-
-  // UI registers Keystroke
-  keyboardui.registerKeystroke(fingerIndex);
 }
 // read from keyboard input [looped]
 void runKeyboardInputMode(){
