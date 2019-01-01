@@ -28,19 +28,18 @@ float TRIGGER_THRESHOLDS[10] = {
   /* Right Pinky */ 200.0
 };
 
-int LIMIT_RESULT = 20;
+// int LIMIT_RESULT = 20;
 int FINGER_LOCKED = -1;             // Lock on triggering finger
 int FINGER_TRIGGER_SPEEDS[10];      // Record downward velocity to determine trigger
 int wordSelectionPosition = 0;      // Which word is selected on choice right now
 int hasPrintCurrentTrigger = -1;    // After a trigger is detected but before it has printed
-bool isAutocompleteOn = false;
-// bool hasStarted = false;            // Has the LeapMotion connected
-bool print = true;
-std::string currentWord;            // currently selected word
-std::string currentSentence;        // currently constructed sentences
-std::vector<int> sequenceOfLetters; // Sequence of finger strokes
-std::mutex mtx;                     // mutex for initialization
-enum InputState { BASE, LIMIT, KEYBOARD }; // for CLI
+// bool isAutocompleteOn = false;
+// // bool hasStarted = false;            // Has the LeapMotion connected
+// bool print = true;
+// std::string currentWord;            // currently selected word
+// std::string currentSentence;        // currently constructed sentences
+// std::vector<int> sequenceOfLetters; // Sequence of finger strokes
+// enum InputState { BASE, LIMIT, KEYBOARD }; // for CLI
 
 // Converter & Keyboardui
 Converter converter;
@@ -105,10 +104,8 @@ void SampleListener::onServiceDisconnect(const Controller& controller) {
 }
 void SampleListener::onFocusGained(const Controller& controller) {
   std::cout << "Focus Gained" << std::endl;
-  mtx.unlock();
 }
 
-// HELPER FUNCTIONS
 
 // determine finger index
 int getFingerIndex(Hand hand, Finger finger) {
@@ -140,6 +137,7 @@ int getLargestTriggerValueIndex() {
   return fingerIndex;
 }
 
+/*
 // print the velocity of each finger on a trigger event
 void printFingerVelocities() {
   if (print) {
@@ -300,6 +298,8 @@ void runKeyboardInputMode(){
     }
   }
 }
+*/
+
 
 // For each frame, determine the velocity of each finger. If a certain finger is
 // not currently locked, and a finger exceeds a threshold, lock that finger,
@@ -334,18 +334,9 @@ void SampleListener::onFrame(const Controller& controller) {
       largestTriggerSpeed > TRIGGER_THRESHOLDS[fingerIndex]) {
       FINGER_LOCKED = fingerIndex;
       hasPrintCurrentTrigger = fingerIndex;
-      handleTriggerEvent(fingerIndex);
-      printFingerVelocities();
+      // handleTriggerEvent(fingerIndex);
+      // printFingerVelocities();
   }
-}
-
-int executeLeapMotion(int argc, char** argv) {
-  runKeyboardInputMode(); // blocking
-
-  printHelpMenu();
-  runStdinInterface(); // blocking
-
-  return 0;
 }
 
 int main(int argc, char** argv) {
@@ -354,36 +345,19 @@ int main(int argc, char** argv) {
   testConverter(converter);
   std::cout << "Converter initialized.\n";
 
-  // TODO: read in arguments [unimplemented]
-
-  // thread for stdin interface
-  // std::thread executionThread (executeLeapMotion, argc, argv);
-
-  // mtx.lock();
-
-  // Leap Motion
+  // Create a sample listener and controller
   SampleListener listener;
   Controller controller;
   controller.addListener(listener);
   if (argc > 1 && strcmp(argv[1], "--bg") == 0)
     controller.setPolicy(Leap::Controller::POLICY_BACKGROUND_FRAMES);
 
-  // mtx.lock();
-  // usleep(1000000);
+  // Keep this process running until Enter is pressed
+  std::cout << "Press Enter to quit..." << std::endl;
+  std::cin.get();
 
-  // Qt UI application. This is blocking.
-  std::cout << "Initializing Keyboardui...\n";
+  // Remove the sample listener when done
+  controller.removeListener(listener);
 
-  QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
-  QGuiApplication app(argc, argv);
-  QQmlApplicationEngine engine;
-  engine.load(QUrl(QStringLiteral("qml/KeyboardUI.qml")));
-  if (engine.rootObjects().isEmpty()) return 0;
-  QQmlComponent component(&engine, QUrl(QStringLiteral("qml/KeyboardUI.qml")));
-  QObject *object = component.create();
-  app.exec();
-
-  // executionThread.join(); // exit stdin interface thread
-  // controller.removeListener(listener); // Remove the sample listener when done
   return 0;
 }
