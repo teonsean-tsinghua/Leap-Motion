@@ -218,8 +218,6 @@ int main(int argc, char** argv) {
     std::cout << each.first << ": " << each.second << std::endl;
   }
 
-  Keyboardui keyboardui = Keyboardui(argc, argv);
-
   // Use keyboard inputs to test converter
   while (true) {
     std::string user_input;
