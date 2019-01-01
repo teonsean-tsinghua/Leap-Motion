@@ -335,7 +335,7 @@ void SampleListener::onFrame(const Controller& controller) {
       FINGER_LOCKED = fingerIndex;
       hasPrintCurrentTrigger = fingerIndex;
       // handleTriggerEvent(fingerIndex);
-      printFingerVelocities();
+      // printFingerVelocities();
   }
 }
 
