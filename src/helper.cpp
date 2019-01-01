@@ -18,7 +18,23 @@ void printHelpMenu() {
 }
 void testConverter(Converter converter) {
   std::vector<std::pair<std::string, double> > re = converter.convert("18");
+  int x=0;
   for(auto each: re) {
+    if (x++ > 4) return;
     std::cout << each.first << ": " << each.second << std::endl;
+  }
+}
+
+int getNumberFromStdin(){
+  while (true) {
+    std::string limit;
+    std::cin >> limit;
+    if (!isNumber(limit) || std::atoi(limit.c_str()) <= 0) {
+      std::cout << "Please enter positive number. You entered: "
+        << limit << std::endl;
+    } else {
+      std::cout << "DISPLAYING ONLY " << limit << " RESULTS" << std::endl;
+      return std::atoi(limit.c_str());
+    }
   }
 }

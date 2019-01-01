@@ -34,29 +34,29 @@ int FINGER_TRIGGER_SPEEDS[10];      // Record downward velocity to determine tri
 int wordSelectionPosition = 0;      // Which word is selected on choice right now
 int hasPrintCurrentTrigger = -1;    // After a trigger is detected but before it has printed
 bool isAutocompleteOn = false;
-bool hasStarted = false;            // Has the LeapMotion connected
+// bool hasStarted = false;            // Has the LeapMotion connected
 bool print = true;
 std::string currentWord;            // currently selected word
 std::string currentSentence;        // currently constructed sentences
 std::vector<int> sequenceOfLetters; // Sequence of finger strokes
+std::mutex mtx;                     // mutex for initialization
 enum InputState { BASE, LIMIT, KEYBOARD }; // for CLI
 
 // Converter & Keyboardui
 Converter converter;
-Keyboardui keyboardui;
 
 // LeapMotion Template Code
 using namespace Leap;
 class SampleListener : public Listener {
   public:
     virtual void onInit(const Controller&);
+    virtual void onFocusGained(const Controller&);
+    virtual void onFocusLost(const Controller&);
+    virtual void onDeviceChange(const Controller&);
     virtual void onConnect(const Controller&);
     virtual void onDisconnect(const Controller&);
     virtual void onExit(const Controller&);
     virtual void onFrame(const Controller&);
-    virtual void onFocusGained(const Controller&);
-    virtual void onFocusLost(const Controller&);
-    virtual void onDeviceChange(const Controller&);
     virtual void onServiceConnect(const Controller&);
     virtual void onServiceDisconnect(const Controller&);
 
@@ -105,10 +105,10 @@ void SampleListener::onServiceDisconnect(const Controller& controller) {
 }
 void SampleListener::onFocusGained(const Controller& controller) {
   std::cout << "Focus Gained" << std::endl;
-  hasStarted = true;
+  mtx.unlock();
 }
 
-// Helper functions
+// HELPER FUNCTIONS
 
 // determine finger index
 int getFingerIndex(Hand hand, Finger finger) {
@@ -294,13 +294,10 @@ void runStdinInterface() {
 void runKeyboardInputMode(){
   std::cout << "Keyboard Input Mode: \n";
   for (std::string line; std::getline(std::cin, line);) {
-    std::cout << line << "\n";
-    std::vector<std::pair<std::string, double> > re = converter.convert("18");
-    // std::cout << "Here 3 \n";
+    std::vector<std::pair<std::string, double> > re = converter.convert(line);
     for(auto each: re) {
       std::cout << each.first << ": " << each.second << std::endl;
     }
-    // std::cout << "Here 4 \n";
   }
 }
 
@@ -345,33 +342,48 @@ void SampleListener::onFrame(const Controller& controller) {
 int executeLeapMotion(int argc, char** argv) {
   runKeyboardInputMode(); // blocking
 
-  // Leap Motion Code
+  printHelpMenu();
+  runStdinInterface(); // blocking
+
+  return 0;
+}
+
+int main(int argc, char** argv) {
+  std::cout << "Initializing converter...\n";
+  Converter converter;
+  testConverter(converter);
+  std::cout << "Converter initialized.\n";
+
+  // TODO: read in arguments [unimplemented]
+
+  // thread for stdin interface
+  // std::thread executionThread (executeLeapMotion, argc, argv);
+
+  // mtx.lock();
+
+  // Leap Motion
   SampleListener listener;
   Controller controller;
   controller.addListener(listener);
   if (argc > 1 && strcmp(argv[1], "--bg") == 0)
     controller.setPolicy(Leap::Controller::POLICY_BACKGROUND_FRAMES);
 
-  printHelpMenu();
-  runStdinInterface(); // blocking
-
-  // Remove the sample listener when done
-  controller.removeListener(listener);
-  return 0;
-}
-
-int main(int argc, char** argv) {
-  std::cout << "Converter initialized.\n";
-  testConverter(converter);
-
-  // TODO: read in arguments [unimplemented]
-
-  std::thread executionThread (executeLeapMotion, argc, argv);
+  // mtx.lock();
+  // usleep(1000000);
 
   // Qt UI application. This is blocking.
   std::cout << "Initializing Keyboardui...\n";
-  // keyboardui.init(argc, argv);
-  while(true);
-  executionThread.join();
+
+  QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
+  QGuiApplication app(argc, argv);
+  QQmlApplicationEngine engine;
+  engine.load(QUrl(QStringLiteral("qml/KeyboardUI.qml")));
+  if (engine.rootObjects().isEmpty()) return 0;
+  QQmlComponent component(&engine, QUrl(QStringLiteral("qml/KeyboardUI.qml")));
+  QObject *object = component.create();
+  app.exec();
+
+  // executionThread.join(); // exit stdin interface thread
+  // controller.removeListener(listener); // Remove the sample listener when done
   return 0;
 }

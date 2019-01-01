@@ -15,4 +15,7 @@ void printHelpMenu();
 // test the Converter
 void testConverter(Converter converter);
 
+// get a number from stdin
+int getNumberFromStdin();
+
 #endif // HELPER_H
