@@ -1,11 +1,3 @@
-/******************************************************************************\
-* Copyright (C) 2012-2014 Leap Motion, Inc. All rights reserved.               *
-* Leap Motion proprietary and confidential. Not for distribution.              *
-* Use subject to the terms of the Leap Motion SDK Agreement available at       *
-* https://developer.leapmotion.com/sdk_agreement, or another agreement         *
-* between Leap Motion and you, your company or other organization.             *
-\******************************************************************************/
-
 #include <iostream>
 #include <cstring>
 #include <thread>
@@ -31,10 +23,10 @@ float TRIGGER_THRESHOLDS[10] = {
 int LIMIT_RESULT = 20;
 int FINGER_LOCKED = -1;             // Lock on triggering finger
 int FINGER_TRIGGER_SPEEDS[10];      // Record downward velocity to determine trigger
+bool inWordSelectionMode = false;       // Triggered by thumb to select word
 int wordSelectionPosition = 0;      // Which word is selected on choice right now
 int hasPrintCurrentTrigger = -1;    // After a trigger is detected but before it has printed
 bool isAutocompleteOn = false;
-// bool hasStarted = false;            // Has the LeapMotion connected
 bool print = true;
 std::string currentWord;            // currently selected word
 std::string currentSentence;        // currently constructed sentences
@@ -43,6 +35,7 @@ enum InputState { BASE, LIMIT, KEYBOARD }; // for CLI
 
 // Converter & Keyboardui
 Converter converter;
+Keyboardui keyboardui;
 
 // LeapMotion Template Code
 using namespace Leap;
@@ -106,7 +99,6 @@ void SampleListener::onFocusGained(const Controller& controller) {
   std::cout << "Focus Gained" << std::endl;
 }
 
-
 // determine finger index
 int getFingerIndex(Hand hand, Finger finger) {
   int fingerIndex = hand.isLeft() ? 5 : 0;
@@ -136,7 +128,6 @@ int getLargestTriggerValueIndex() {
   }
   return fingerIndex;
 }
-
 
 // print the velocity of each finger on a trigger event
 void printFingerVelocities() {
@@ -171,51 +162,54 @@ void printFingerVelocities() {
   }
   hasPrintCurrentTrigger = -1;
 }
+// print word choices
 void printSequenceAndWordChoices() {
+
+  // get word candidates from sequence
   std::string input_string;
   for (int i = 0; i < sequenceOfLetters.size(); i++) {
     input_string += std::to_string(sequenceOfLetters[i]);
   }
-
-  std::vector<std::pair<std::string, double> > re = converter.convert(input_string);
-  int count = 0;
-  int list_length = (LIMIT_RESULT < re.size() ? LIMIT_RESULT : re.size()) +1;
-  if (wordSelectionPosition < 0) wordSelectionPosition += list_length;
-  if (re.size() == 0) {
+  std::vector<std::pair<std::string, double> > candidates = converter.convert(input_string);
+  if (candidates.size() == 0) {
     std::cout << "(no results)" << std::endl;
     return;
   }
-  for(auto each: re) {
+
+  int count = 0;
+  int list_length = (LIMIT_RESULT < candidates.size() ? LIMIT_RESULT : candidates.size()) +1;
+  if (wordSelectionPosition < 0) wordSelectionPosition += list_length;
+  for(auto each: candidates) {
     // if (each.first.length() != input_string.length()) {
     //   continue;
     // }
     if (count >= LIMIT_RESULT) break;
-    if ((wordSelectionPosition-1) % list_length == count++) {
+    if (wordSelectionPosition == count++) {
       std::cout << ">";
       currentWord = each.first;
     }
-
     std::cout << each.first << ": " << each.second << std::endl;
   }
-  if (wordSelectionPosition == 0 || wordSelectionPosition == list_length) {
+  if (wordSelectionPosition == list_length-1) {
     std::cout << ">";
     currentWord = "";
   }
   std::cout << "DEL" << std::endl;
 }
 
-/*
 // After a keystroke is registered, handle the appropriate trigger
-void handleTriggerEvent(int fingerIndex) {
-  // Is thumb
+void handleKeystrokeEvent(int fingerIndex) {
+  // If keystroke is thumb, we select left and right
   if (fingerIndex%5 == 0) {
+    inWordSelectionMode = true;
     std::cout << "RESULTS:" << std::endl;
     if (fingerIndex == 0) wordSelectionPosition++;
     if (fingerIndex == 5) wordSelectionPosition--;
     printSequenceAndWordChoices();
     std::cout << std::endl;
-  } else {
-    if (wordSelectionPosition > 0) { // onto the next word
+  } else { // else if fingers, onto the next word
+    if (inWordSelectionMode) {
+      inWordSelectionMode = false;
       wordSelectionPosition = 0;
       sequenceOfLetters.clear();
       if (currentWord != "") {
@@ -225,67 +219,9 @@ void handleTriggerEvent(int fingerIndex) {
       std::cout << "CURRENT SENTENCE: " << currentSentence << std::endl;
     }
     sequenceOfLetters.push_back(fingerIndex);
-    printSequenceAndWordChoices();
-  }
-}
-// run commands from stdin [looped]
-void runStdinInterface() {
-  int numberInput;
-  std::string user_input;
-  InputState input_state = BASE;
-  while (true) {
-    if (input_state == BASE) {
-        std::cin >> user_input;
-      if (user_input == "HELP") {
-        printHelpMenu();
-      } else if (user_input == "LIMIT") {
-        input_state = LIMIT;
-      } else if (user_input == "AUTOCOMPLETE") {
-        isAutocompleteOn = !isAutocompleteOn;
-        std::string on_off = isAutocompleteOn == 0 ? "ON" : "OFF";
-        std::cout << "AUTOCOMPLETE " << on_off << std::endl;
-      } else if (user_input == "CURRENT") {
-        std::cout << "PRINTING CURRENT SENTENCE: " << currentSentence << std::endl;
-      } else if (user_input == "CLEAR") {
-        std::cout << "CURRENT SENTENCE CLEARED" << std::endl;
-        currentSentence = "";
-      } else if (user_input == "PRINT") {
-        print = !print;
-        std::string on_off = print == 0 ? "ON" : "OFF";
-        std::cout << "PRINT " << on_off << std::endl;
-      } else if (user_input == "KEYBOARD") {
-        input_state = KEYBOARD;
-      } else if (user_input == "QUIT") {
-        std::cout << "GOODBYE!" << std::endl;
-        exit(0);
-      } else {
-        std::cout << "INVALID COMMAND: " << user_input << std::endl;
-        std::cout << "<HELP> to see valid commands" << std::endl;
-      }
-    } else if (input_state == LIMIT) {
-      std::string limit;
-      std::cin >> limit;
-      if (!isNumber(limit) || std::atoi(limit.c_str()) <= 0) {
-        std::cout << "Please enter positive for limit. You entered: "
-          << limit << std::endl;
-      } else {
-        LIMIT_RESULT = std::atoi(limit.c_str());
-        std::cout << "DISPLAYING ONLY " << limit << " RESULTS" << std::endl;
-        input_state = BASE;
-      }
-    } else if (input_state == KEYBOARD) {
-      std::string mock_input;
-      std::cin >> mock_input;
-      if (!isNumber(mock_input) || std::atoi(mock_input.c_str()) <= 0) {
-        std::cout << "Please enter positive number for mock. You entered: "
-          << mock_input << std::endl;
-      } else {
-        std::vector<std::pair<std::string, double>> re = converter.convert(mock_input);
-        for(auto each: re) {
-          std::cout << each.first << ": " << each.second << std::endl;
-        }
-        input_state = BASE;
-      }
+    if (isAutocompleteOn) {
+      printSequenceAndWordChoices();
+      std::cout << std::endl;
     }
   }
 }
@@ -299,12 +235,45 @@ void runKeyboardInputMode(){
     }
   }
 }
-*/
+// run commands from stdin [looped]
+void runStdinInterface() {
+  int numberInput;
+  std::string user_input;
+  while (true) {
+    std::cin >> user_input;
+    if (user_input == "HELP") {
+      printHelpMenu();
+    } else if (user_input == "LIMIT") {
+      LIMIT_RESULT = getNumberFromStdin();
+    } else if (user_input == "AUTOCOMPLETE") {
+      isAutocompleteOn = !isAutocompleteOn;
+      std::string on_off = isAutocompleteOn == 0 ? "ON" : "OFF";
+      std::cout << "AUTOCOMPLETE " << on_off << std::endl;
+    } else if (user_input == "CURRENT") {
+      std::cout << "PRINTING CURRENT SENTENCE: " << currentSentence << std::endl;
+    } else if (user_input == "CLEAR") {
+      std::cout << "CURRENT SENTENCE CLEARED" << std::endl;
+      currentSentence = "";
+    } else if (user_input == "PRINT") {
+      print = !print;
+      std::string on_off = print == 0 ? "ON" : "OFF";
+      std::cout << "PRINT " << on_off << std::endl;
+    } else if (user_input == "KEYBOARD") {
+      runKeyboardInputMode();
+    } else if (user_input == "QUIT") {
+      std::cout << "GOODBYE!" << std::endl;
+      exit(0);
+    } else {
+      std::cout << "INVALID COMMAND: " << user_input << std::endl;
+      std::cout << "<HELP> to see valid commands" << std::endl;
+    }
+  }
+}
 
 
 // For each frame, determine the velocity of each finger. If a certain finger is
 // not currently locked, and a finger exceeds a threshold, lock that finger,
-// register it as a trigger, and evoke handleTriggerEvent() and printFingerVelocities().
+// register it as a trigger, and evoke handleKeystrokeEvent() and printFingerVelocities().
 void SampleListener::onFrame(const Controller& controller) {
   const Frame frame = controller.frame();
   HandList hands = frame.hands();
@@ -320,14 +289,15 @@ void SampleListener::onFrame(const Controller& controller) {
       // For current frame iteration, store all finger velocities
       FINGER_TRIGGER_SPEEDS[fingerIndex] = triggerSpeed;
 
-      // If currently locked finger decreases speed:
+      // If currently locked finger decreases speed, we release the lock:
       if (FINGER_LOCKED == fingerIndex)
         if (triggerSpeed <= TRIGGER_THRESHOLDS[fingerIndex]-100)
-          FINGER_LOCKED = -1; // release lock
+          FINGER_LOCKED = -1;
     }
   }
 
   int fingerIndex = getLargestTriggerValueIndex();
+  if (fingerIndex == -1) return;
   int largestTriggerSpeed = FINGER_TRIGGER_SPEEDS[fingerIndex];
 
   // if finger is not locked and one trigger speed is high
@@ -335,7 +305,7 @@ void SampleListener::onFrame(const Controller& controller) {
       largestTriggerSpeed > TRIGGER_THRESHOLDS[fingerIndex]) {
       FINGER_LOCKED = fingerIndex;
       hasPrintCurrentTrigger = fingerIndex;
-      // handleTriggerEvent(fingerIndex);
+      handleKeystrokeEvent(fingerIndex);
       printFingerVelocities();
   }
 }
@@ -357,15 +327,8 @@ int main(int argc, char** argv) {
   std::cout << "Press Enter to quit..." << std::endl;
   std::cin.get();
 
-  std::cout << "Initializing Keyboardui...\n";
-  QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
-  QGuiApplication app(argc, argv);
-  QQmlApplicationEngine engine;
-  engine.load(QUrl(QStringLiteral("qml/KeyboardUI.qml")));
-  if (engine.rootObjects().isEmpty()) return 0;
-  QQmlComponent component(&engine, QUrl(QStringLiteral("qml/KeyboardUI.qml")));
-  QObject *object = component.create();
-  app.exec();
+  Keyboardui keyboardui;
+  keyboardui.init(argc, argv);
 
   // Remove the sample listener when done
   controller.removeListener(listener);
