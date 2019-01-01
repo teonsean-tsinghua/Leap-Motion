@@ -164,7 +164,6 @@ void printFingerVelocities() {
 }
 // print word choices
 void printSequenceAndWordChoices() {
-
   // get word candidates from sequence
   std::string input_string;
   for (int i = 0; i < sequenceOfLetters.size(); i++) {
@@ -224,6 +223,9 @@ void handleKeystrokeEvent(int fingerIndex) {
       std::cout << std::endl;
     }
   }
+
+  // UI registers Keystroke
+  keyboardui.registerKeystroke(fingerIndex);
 }
 // read from keyboard input [looped]
 void runKeyboardInputMode(){
@@ -270,7 +272,6 @@ void runStdinInterface() {
   }
 }
 
-
 // For each frame, determine the velocity of each finger. If a certain finger is
 // not currently locked, and a finger exceeds a threshold, lock that finger,
 // register it as a trigger, and evoke handleKeystrokeEvent() and printFingerVelocities().
@@ -310,6 +311,12 @@ void SampleListener::onFrame(const Controller& controller) {
   }
 }
 
+int executeLeapMotion(int argc, char** argv) {
+  printHelpMenu();
+  runStdinInterface(); // blocking
+  return 0;
+}
+
 int main(int argc, char** argv) {
   std::cout << "Initializing converter...\n";
   Converter converter;
@@ -327,7 +334,8 @@ int main(int argc, char** argv) {
   std::cout << "Press Enter to quit..." << std::endl;
   std::cin.get();
 
-  Keyboardui keyboardui;
+  // thread for stdin interface
+  std::thread executionThread (executeLeapMotion, argc, argv);
   keyboardui.init(argc, argv);
 
   // Remove the sample listener when done

@@ -5,13 +5,48 @@ import QtScxml 5.8
 Window {
     id: window
     visible: true
-    width: 480
-    height: 240
+    width: 560
+    height: 360
 
     function myQmlFunction(msg) {
         console.log("KeyboardUI.qml receives", msg)
-
         return "Message from KeyboardUI.qml saying hi!"
+    }
+
+    function registerKeystroke(fingerIndex) {
+        var qmlIndex = 0;
+
+        // map to qt coordinates
+        if (fingerIndex%5 == 0) { // thumb
+            arrowButtons.itemAt(fingerIndex/5).pressed = true
+            delay(200, function() {
+                arrowButtons.itemAt(fingerIndex/5).pressed = false
+            })
+            return
+        } else if (fingerIndex === 1) {
+            qmlIndex = 4
+        } else if (fingerIndex === 2) {
+            qmlIndex = 5
+        } else if (fingerIndex === 3) {
+            qmlIndex = 6
+        } else if (fingerIndex === 4) {
+            qmlIndex = 7
+        } else if (fingerIndex === 6) {
+            qmlIndex = 3
+        } else if (fingerIndex === 7) {
+            qmlIndex = 2
+        } else if (fingerIndex === 8) {
+            qmlIndex = 1
+        } else if (fingerIndex === 9) {
+            qmlIndex = 0
+        }
+
+        letterButtons.itemAt(qmlIndex).pressed = true
+        delay(200, function() {
+            letterButtons.itemAt(qmlIndex).pressed = false
+        })
+
+        return "FingerIndex: " + fingerIndex + " triggered!"
     }
 
     // results area
@@ -39,7 +74,7 @@ Window {
         }
     }
 
-    // keystrokes
+    // buttons
     Item {
         id: keystrokes
         anchors.top: resultArea.bottom
@@ -56,9 +91,9 @@ Window {
         }
         height: 120
 
-    // word choices
+        // word choices
         Rectangle {
-            id: wordSelection
+            id: wordCandidates
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.top: parent.top
@@ -69,9 +104,9 @@ Window {
             anchors.topMargin: -5
         }
 
-        // keystrokes
+        // letterButtons
         Repeater {
-            id: digits
+            id: letterButtons
             model: ["Q\nA\nZ", "W\nS\nX", "E\nD\nC", "R  T\nF  G\nV  B", "Y  U\nH  J\nN  M", "I\nK", "O\nL", "P"]
             Button {
                 x: index <= 3 ? index * (parent.width / 10) :
@@ -84,13 +119,13 @@ Window {
                 border.width: 5
                 text: modelData
                 fontHeight: 0.2
-                onClicked: statemachine.submitEvent(eventName)
+//                onClicked: letterButtons.childAt(0,)
             }
         }
 
-        // arrows
+        // arrowButtons
         Repeater {
-            id: arrows
+            id: arrowButtons
             model: ["<", ">"]
             Button {
                 x: index * width
@@ -102,8 +137,19 @@ Window {
                 border.width: 5
                 text: modelData
                 fontHeight: 0.7
-                onClicked: window.myQmlFunction("this is arrows")
+                onClicked: window.registerKeystroke(3)
             }
         }
+    }
+
+    // Timer for delay
+    Timer {
+        id: timer
+    }
+    function delay(delayTime, cb) {
+        timer.interval = delayTime;
+        timer.repeat = false;
+        timer.triggered.connect(cb);
+        timer.start();
     }
 }
