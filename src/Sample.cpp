@@ -33,13 +33,13 @@ int FINGER_LOCKED = -1;             // Lock on triggering finger
 int FINGER_TRIGGER_SPEEDS[10];      // Record downward velocity to determine trigger
 int wordSelectionPosition = 0;      // Which word is selected on choice right now
 int hasPrintCurrentTrigger = -1;    // After a trigger is detected but before it has printed
-// bool isAutocompleteOn = false;
-// // bool hasStarted = false;            // Has the LeapMotion connected
-// bool print = true;
-// std::string currentWord;            // currently selected word
-// std::string currentSentence;        // currently constructed sentences
-// std::vector<int> sequenceOfLetters; // Sequence of finger strokes
-// enum InputState { BASE, LIMIT, KEYBOARD }; // for CLI
+bool isAutocompleteOn = false;
+// bool hasStarted = false;            // Has the LeapMotion connected
+bool print = true;
+std::string currentWord;            // currently selected word
+std::string currentSentence;        // currently constructed sentences
+std::vector<int> sequenceOfLetters; // Sequence of finger strokes
+enum InputState { BASE, LIMIT, KEYBOARD }; // for CLI
 
 // Converter & Keyboardui
 Converter converter;
@@ -204,6 +204,7 @@ void printSequenceAndWordChoices() {
   std::cout << "DEL" << std::endl;
 }
 
+
 // After a keystroke is registered, handle the appropriate trigger
 void handleTriggerEvent(int fingerIndex) {
   // Is thumb
@@ -355,6 +356,16 @@ int main(int argc, char** argv) {
   // Keep this process running until Enter is pressed
   std::cout << "Press Enter to quit..." << std::endl;
   std::cin.get();
+
+  std::cout << "Initializing Keyboardui...\n";
+  QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
+  QGuiApplication app(argc, argv);
+  QQmlApplicationEngine engine;
+  engine.load(QUrl(QStringLiteral("qml/KeyboardUI.qml")));
+  if (engine.rootObjects().isEmpty()) return 0;
+  QQmlComponent component(&engine, QUrl(QStringLiteral("qml/KeyboardUI.qml")));
+  QObject *object = component.create();
+  app.exec();
 
   // Remove the sample listener when done
   controller.removeListener(listener);
