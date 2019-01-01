@@ -178,8 +178,9 @@ void printSequenceAndWordChoices() {
   }
 
   int count = 0;
-  int list_length = (LIMIT_RESULT < candidates.size() ? LIMIT_RESULT : candidates.size()) +1;
+  int list_length = (LIMIT_RESULT < candidates.size() ? LIMIT_RESULT : candidates.size())+1;
   if (wordSelectionPosition < 0) wordSelectionPosition += list_length;
+  if (wordSelectionPosition >= list_length) wordSelectionPosition -= list_length;
 
   std::vector<std::string> candidatesForVisualization;
   for(auto each: candidates) {

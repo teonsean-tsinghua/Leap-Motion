@@ -40,10 +40,23 @@ void Keyboardui::clearWordCandidates() {
 void Keyboardui::setWordCandidates(std::vector<std::string> candidates, int wordSelectionPosition) {
   int startPosition = wordSelectionPosition/5;
   QVariantList list;
-  int maxIndex = candidates.size() < 5 ? candidates.size() : 5;
-  for (int x=0; x<maxIndex;x++) {
+
+  // cycling through candidates
+  int startIndex = wordSelectionPosition-wordSelectionPosition%5;
+  int sizeOfList = candidates.size() - 1; // this index is wrong
+  int endIndex = startIndex+5 > sizeOfList ? sizeOfList : startIndex+5;
+  for (int x=startIndex; x<endIndex;x++) {
     std::string currentCandidate = candidates[x];
     list << currentCandidate.c_str();
+  }
+
+  // if we reach the end, then we add the "DEL" button and empty entries
+  // we are hiding one entry
+  if (endIndex-startIndex < 5) {
+    list << "DEL";
+    for (int x=0; x<5-(endIndex-startIndex)-1;x++) {
+      list << "";
+    }
   }
 
   QMetaObject::invokeMethod(object, "setWordCandidates",
