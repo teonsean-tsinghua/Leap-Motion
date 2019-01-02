@@ -54,10 +54,5 @@ googletest-*
 
 # Mac Specifics
 *.DS_Store
-<<<<<<< HEAD
-=======
-
-# For Bill
 _Sample.cpp
->>>>>>> master
 make.sh
