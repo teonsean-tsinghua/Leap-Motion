@@ -317,27 +317,6 @@ int main(int argc, char** argv) {
   Converter converter;
   testConverter(converter);
   std::cout << "Converter initialized.\n";
-<<<<<<< HEAD
-=======
-  std::vector<std::pair<std::string, double> > re = converter.convert("18");
-  for(auto each: re) {
-    std::cout << each.first << ": " << each.second << std::endl;
-  }
-
-  while (true) {
-    std::string user_input;
-    std::cin >> user_input;
-    std::vector<std::pair<std::string, double> > re =
-      converter.convert(user_input);
-    for(auto each: re) {
-      std::cout << each.first << ": " << each.second << std::endl;
-    }
-  }
-
-  // // Create a sample listener and controller
-  // SampleListener listener;
-  // Controller controller;
->>>>>>> master
 
   // Create a sample listener and controller
   SampleListener listener;
