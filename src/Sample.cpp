@@ -26,7 +26,7 @@ int FINGER_TRIGGER_SPEEDS[10];      // Record downward velocity to determine tri
 bool inWordSelectionMode = false;   // Triggered by thumb to select word
 int wordSelectionPosition = 0;      // Which word is selected on choice right now
 int hasPrintCurrentTrigger = -1;    // After a trigger is detected but before it has printed
-bool isAutocompleteOn = true;       // Toggle autocomplete of words
+bool isAutocompleteOn = false;       // Toggle autocomplete of words
 bool print = true;
 std::string currentWord;            // currently selected word
 std::string currentSentence;        // currently constructed sentences
@@ -174,6 +174,8 @@ void printSequenceAndWordChoices() {
   std::vector<std::pair<std::string, double> > candidates = converter.convert(input_string);
   if (candidates.size() == 0) {
     std::cout << "(no results)" << std::endl;
+    currentWord = "";
+    keyboardui.clearWordCandidates();
     return;
   }
 
@@ -189,7 +191,7 @@ void printSequenceAndWordChoices() {
     // TODO: set a more consistent model
 
     if (count >= LIMIT_RESULT) break;
-    if (wordSelectionPosition == count++) {
+    if (wordSelectionPosition == count++ && inWordSelectionMode) {
       std::cout << ">";
       currentWord = each.first;
     }
@@ -201,7 +203,7 @@ void printSequenceAndWordChoices() {
   }
   std::cout << "DEL" << std::endl;
 
-  keyboardui.setWordCandidates(candidatesForVisualization, wordSelectionPosition);
+  keyboardui.setWordCandidates(candidatesForVisualization, wordSelectionPosition, inWordSelectionMode);
 
 }
 
@@ -209,10 +211,10 @@ void printSequenceAndWordChoices() {
 void handleKeystrokeEvent(int fingerIndex) {
   // If keystroke is thumb, we select left and right
   if (fingerIndex%5 == 0) {
-    inWordSelectionMode = true;
     std::cout << "RESULTS:" << std::endl;
-    if (fingerIndex == 0) wordSelectionPosition++;
+    if (fingerIndex == 0 && inWordSelectionMode) wordSelectionPosition++;
     if (fingerIndex == 5) wordSelectionPosition--;
+    inWordSelectionMode = true;
     printSequenceAndWordChoices();
     std::cout << std::endl;
   } else { // else if fingers, onto the next word

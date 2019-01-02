@@ -37,13 +37,13 @@ void Keyboardui::clearWordCandidates() {
   QMetaObject::invokeMethod(object, "clearWordCandidates");
 }
 
-void Keyboardui::setWordCandidates(std::vector<std::string> candidates, int wordSelectionPosition) {
+void Keyboardui::setWordCandidates(std::vector<std::string> candidates, int wordSelectionPosition, bool inWordSelectionMode) {
   int startPosition = wordSelectionPosition/5;
   QVariantList list;
 
   // cycling through candidates
   int startIndex = wordSelectionPosition-wordSelectionPosition%5;
-  int sizeOfList = candidates.size() - 1; // this index is wrong
+  int sizeOfList = candidates.size() - 1;
   int endIndex = startIndex+5 > sizeOfList ? sizeOfList : startIndex+5;
   for (int x=startIndex; x<endIndex;x++) {
     std::string currentCandidate = candidates[x];
@@ -59,7 +59,9 @@ void Keyboardui::setWordCandidates(std::vector<std::string> candidates, int word
     }
   }
 
+  int selectionIndex = wordSelectionPosition%5;
+  if (!inWordSelectionMode) selectionIndex = -1;
   QMetaObject::invokeMethod(object, "setWordCandidates",
     Q_ARG(QVariant, QVariant::fromValue(list)),
-    Q_ARG(QVariant, wordSelectionPosition%5));
+    Q_ARG(QVariant, selectionIndex));
 }

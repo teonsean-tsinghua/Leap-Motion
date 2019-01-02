@@ -5,7 +5,7 @@ import QtScxml 5.8
 Window {
     id: window
     visible: true
-    width: 760
+    width: 800
     height: 420
 
     function myQmlFunction(msg) {
@@ -52,13 +52,16 @@ Window {
     }
     function setWordCandidates(words, index) {
         candidates.model = words;
-        highlightCandidate(index)
+        if (index != -1) highlightCandidate(index)
     }
     function highlightCandidate(highlightedIndex){
+        clearHighlight()
+        candidates.itemAt(highlightedIndex).pressed = true
+    }
+    function clearHighlight(){
         var i;
         for (i = 0; i < 5; i++)
             candidates.itemAt(i).pressed = false
-        candidates.itemAt(highlightedIndex).pressed = true
     }
     function updateDisplay(msg){
       resultText.text = msg
@@ -119,7 +122,7 @@ Window {
             anchors.topMargin: -5
             Repeater {
                 id: candidates
-                model: ["temp","","","",""]
+                model: ["","","","",""]
                 Button {
                     x: index * width
                     width: parent.width/candidates.model.length
@@ -128,7 +131,7 @@ Window {
                     border.color: "white"
                     border.width: 5
                     text: modelData
-                    fontHeight: 0.4
+                    fontHeight: 0.3
                 }
             }
         }
